@@ -1,0 +1,18 @@
+node_modules
+dist
+data
+.env
+.env.local
+*.log
+.DS_Store
+.vite
+.tanstack
+.cache
+_legacy
+
+# Local-only build/source archives — never commit
+*.zip
+*.xlsx
+backend/uploads/
+deploy-artifacts/
+

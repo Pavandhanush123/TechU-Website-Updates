@@ -1,0 +1,99 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String     @id @default(uuid()) @db.Char(36)
+  email        String     @unique @db.VarChar(255)
+  passwordHash String     @map("password_hash") @db.VarChar(255)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  
+  roles        UserRole[]
+
+  @@map("users")
+}
+
+enum Role {
+  admin
+  user
+}
+
+model UserRole {
+  id        String   @id @default(uuid()) @db.Char(36)
+  userId    String   @map("user_id") @db.Char(36)
+  role      Role
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Foreign key relationship
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role], name: "uniq_user_role")
+  @@map("user_roles")
+}
+
+enum DemoSource {
+  application
+  brochure
+  demo
+}
+
+enum DemoStatus {
+  new
+  contacted
+  converted
+  archived
+}
+
+model DemoRequest {
+  id            String     @id @default(uuid()) @db.Char(36)
+  createdAt     DateTime   @default(now()) @map("created_at")
+  fullName      String     @map("full_name") @db.VarChar(120)
+  email         String     @db.VarChar(255)
+  phone         String     @db.VarChar(40)
+  course        String     @db.VarChar(200)
+  preferredDate String?    @map("preferred_date") @db.VarChar(40)
+  source        DemoSource
+  status        DemoStatus @default(new)
+  notes         String?    @db.Text
+  updatedAt     DateTime   @updatedAt @default(now()) @map("updated_at")
+
+  @@index([createdAt(sort: Desc)], name: "idx_demo_requests_created_at")
+  @@index([source], name: "idx_demo_requests_source")
+  @@index([status], name: "idx_demo_requests_status")
+  @@map("demo_requests")
+}
+
+model SiteContent {
+  sectionKey String   @id @map("section_key") @db.VarChar(120)
+  data       Json
+  updatedAt  DateTime @updatedAt @default(now()) @map("updated_at")
+
+  @@map("site_content")
+}
+
+model BlogPost {
+  id          String    @id @default(uuid()) @db.Char(36)
+  slug        String    @unique @db.VarChar(160)
+  title       String    @db.VarChar(240)
+  excerpt     String    @default("") @db.VarChar(500)
+  body        String    @db.MediumText
+  coverImage  String    @default("") @map("cover_image") @db.VarChar(500)
+  author      String    @default("") @db.VarChar(120)
+  tags        Json
+  published   Boolean   @default(false)
+  publishedAt DateTime? @map("published_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @default(now()) @map("updated_at")
+
+  @@index([published, publishedAt(sort: Desc)], name: "idx_blog_posts_published")
+  @@index([createdAt(sort: Desc)], name: "idx_blog_posts_created")
+  @@map("blog_posts")
+}
