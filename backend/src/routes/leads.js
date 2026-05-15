@@ -84,7 +84,7 @@ router.post("/application", validate(applicationSchema), asyncHandler(async (req
 
   const phone = req.body.phone.startsWith("+")
     ? req.body.phone
-    : `+91 ${req.body.phone}`;
+    : `+91${req.body.phone}`;
   const candidateProfile = String(req.body.experience ?? "").trim();
   let profileLabel = `${candidateProfile} yrs experience`;
   if (/^\d{4}$/.test(candidateProfile)) {

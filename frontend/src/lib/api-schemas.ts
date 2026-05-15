@@ -41,7 +41,7 @@ const phoneField = z
       .string()
       .regex(
         /^\+?\d{10,15}$/,
-        "Enter a valid mobile number (10 digits after +91)",
+        "Enter a valid mobile number",
       ),
   );
 
@@ -61,7 +61,7 @@ const contactSectionPhoneField = z
   .pipe(
     z
       .string()
-      .regex(/^\+91\d{10}$/, "Enter a valid 10-digit mobile number"),
+      .regex(/^\+?91\d{10}$|^\+?\d{10}$/, "Enter a valid 10-digit mobile number"),
   );
 
 const courseField = z

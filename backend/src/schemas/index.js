@@ -35,7 +35,7 @@ const phoneField = z
   .min(1, "Phone is required")
   .transform(sanitizePhone)
   .pipe(
-    z.string().regex(/^\+?\d{10,15}$/, "Enter a valid mobile number (10 digits after +91)"),
+    z.string().regex(/^\+?\d{10,15}$/, "Enter a valid mobile number"),
   );
 
 const courseField = z
