@@ -42,11 +42,20 @@ type Mode =
 
 function AdminBlogs() {
   const [mode, setMode] = useState<Mode>({ kind: "list" });
+  const [listRefreshKey, setListRefreshKey] = useState(0);
 
   return mode.kind === "list" ? (
-    <BlogList onCreate={() => setMode({ kind: "create" })} onEdit={(id) => setMode({ kind: "edit", id })} />
+    <BlogList
+      refreshKey={listRefreshKey}
+      onCreate={() => setMode({ kind: "create" })}
+      onEdit={(id) => setMode({ kind: "edit", id })}
+    />
   ) : (
-    <BlogEditor mode={mode} onBack={() => setMode({ kind: "list" })} />
+    <BlogEditor
+      mode={mode}
+      onBack={() => setMode({ kind: "list" })}
+      onSaved={() => setListRefreshKey((k) => k + 1)}
+    />
   );
 }
 
@@ -55,9 +64,11 @@ function AdminBlogs() {
 // ────────────────────────────────────────────────────────────────────────────
 
 function BlogList({
+  refreshKey,
   onCreate,
   onEdit,
 }: {
+  refreshKey: number;
   onCreate: () => void;
   onEdit: (id: string) => void;
 }) {
@@ -83,7 +94,7 @@ function BlogList({
     return () => {
       window.removeEventListener(ADMIN_SESSION_READY_EVENT, load);
     };
-  }, [refresh]);
+  }, [refresh, refreshKey]);
 
   const filtered = useMemo(() => {
     if (!posts) return [];
@@ -345,9 +356,11 @@ const EMPTY: BlogPostInput = {
 function BlogEditor({
   mode,
   onBack,
+  onSaved,
 }: {
   mode: { kind: "create" } | { kind: "edit"; id: string };
   onBack: () => void;
+  onSaved: () => void;
 }) {
   const editing = mode.kind === "edit";
   const [form, setForm] = useState<BlogPostInput>(EMPTY);
@@ -434,7 +447,7 @@ function BlogEditor({
     }
   };
 
-  const submit = async (publish?: boolean) => {
+  const submit = async () => {
     if (!form.title.trim()) {
       toast.error("Title is required");
       return;
@@ -443,7 +456,7 @@ function BlogEditor({
     try {
       const payload: BlogPostInput = {
         ...form,
-        published: publish ?? form.published,
+        published: !!form.published,
       };
       const res = editing
         ? await updateAdminBlogPost(mode.id, payload)
@@ -453,11 +466,9 @@ function BlogEditor({
         return;
       }
       toast.success(
-        publish === true
-          ? "Published"
-          : publish === false
-            ? "Saved as draft"
-            : "Saved",
+        res.post.published
+          ? "Saved and published"
+          : "Saved as draft (unpublished)",
       );
       const next: BlogPostInput = {
         title: res.post.title,
@@ -471,6 +482,7 @@ function BlogEditor({
       };
       setForm(next);
       setOriginal(JSON.parse(JSON.stringify(next)));
+      onSaved();
       if (!editing) onBack();
     } finally {
       setSaving(false);
@@ -489,19 +501,11 @@ function BlogEditor({
       </button>
       <button
         type="button"
-        onClick={() => submit(false)}
+        onClick={() => submit()}
         disabled={saving || !dirty}
-        className="rounded-lg border border-border px-3 py-2 text-xs font-medium text-foreground transition hover:bg-muted disabled:opacity-50"
-      >
-        {saving ? "Saving…" : "Save draft"}
-      </button>
-      <button
-        type="button"
-        onClick={() => submit(true)}
-        disabled={saving}
         className="rounded-lg bg-brand-orange px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:brightness-110 disabled:opacity-50"
       >
-        {saving ? "Publishing…" : form.published ? "Update" : "Publish"}
+        {saving ? "Saving…" : "Save"}
       </button>
     </>
   );

@@ -4,7 +4,7 @@ export function DesignTools() {
   const course = useCourse();
   return (
     <section className="bg-background">
-      <div className="mx-auto grid max-w-[1280px] grid-cols-1 lg:grid-cols-2">
+      <div className="mx-auto grid max-w-page grid-cols-1 lg:grid-cols-2">
         {/* Left: copy */}
         <div className="flex items-center px-4 py-10 sm:px-10 sm:py-16 lg:px-16 lg:py-24">
           <div className="max-w-md">

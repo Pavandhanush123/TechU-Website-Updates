@@ -1,11 +1,13 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import path from "node:path";
 
 
 import authRoutes from "./routes/auth.js";
 import leadsRoutes from "./routes/leads.js";
 import adminRoutes from "./routes/admin.js";
+import adminIsaRoutes from "./routes/admin-isa.js";
 import cmsPublicRoutes from "./routes/cms-public.js";
 import cmsAdminRoutes from "./routes/cms-admin.js";
 import blogsPublicRoutes from "./routes/blogs-public.js";
@@ -42,6 +44,13 @@ try {
   process.exit(1);
 }
 
+const FRONTEND_DIST_RAW = process.env.FRONTEND_DIST?.trim();
+const frontendDistAbs = FRONTEND_DIST_RAW
+  ? path.isAbsolute(FRONTEND_DIST_RAW)
+    ? FRONTEND_DIST_RAW
+    : path.resolve(process.cwd(), FRONTEND_DIST_RAW)
+  : null;
+
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
 const HOST = process.env.HOST || "0.0.0.0";
@@ -56,6 +65,28 @@ const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || "")
 const IS_DEV = process.env.NODE_ENV !== "production";
 const LOCAL_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/;
 
+function isPrivateLanIpv4(hostname) {
+  const m = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(hostname);
+  if (!m) return false;
+  const oct = [Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4])];
+  if (oct.some((x) => !Number.isInteger(x) || x < 0 || x > 255)) return false;
+  const [a, b] = oct;
+  if (a === 10) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  return false;
+}
+
+/** Vite (or similar) on another device / LAN IP — same need as localhost for dev. */
+function isPrivateLanDevOrigin(origin) {
+  try {
+    const hostname = new URL(origin).hostname;
+    return isPrivateLanIpv4(hostname);
+  } catch {
+    return false;
+  }
+}
+
 app.use(
   cors({
     origin: (origin, cb) => {
@@ -67,7 +98,10 @@ app.use(
         cb(null, true);
         return;
       }
-      if (IS_DEV && LOCAL_ORIGIN_RE.test(origin)) {
+      if (
+        IS_DEV &&
+        (LOCAL_ORIGIN_RE.test(origin) || isPrivateLanDevOrigin(origin))
+      ) {
         cb(null, true);
         return;
       }
@@ -114,6 +148,7 @@ app.use("/api/leads", leadsRoutes);
 app.use("/api/cms", cmsPublicRoutes);
 app.use("/api/blogs", blogsPublicRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/admin", adminIsaRoutes);
 app.use("/api/admin/cms", cmsAdminRoutes);
 app.use("/api/admin/blogs", blogsAdminRoutes);
 app.use("/api/admin/uploads", uploadsRoutes);
@@ -131,6 +166,29 @@ app.use(
     },
   }),
 );
+
+if (frontendDistAbs) {
+  app.use(
+    express.static(frontendDistAbs, {
+      index: "index.html",
+      maxAge: "1h",
+      fallthrough: true,
+    }),
+  );
+  app.use((req, res, next) => {
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      next();
+      return;
+    }
+    if (req.path.startsWith("/api") || req.path.startsWith("/uploads")) {
+      next();
+      return;
+    }
+    res.sendFile(path.join(frontendDistAbs, "index.html"), (err) => {
+      if (err) next(err);
+    });
+  });
+}
 
 app.get("/api/test-prisma", asyncHandler(async (_req, res) => {
   const users = await prisma.user.findMany({
@@ -153,6 +211,9 @@ app.use(errorHandler);
 
 const server = app.listen(PORT, HOST, () => {
   console.log(`TechU API listening on http://${HOST}:${PORT}`);
+  if (frontendDistAbs) {
+    console.log(`Serving SPA from ${frontendDistAbs}`);
+  }
 });
 
 function shutdown(signal) {

@@ -8,7 +8,7 @@
 //   - `showAgainAfterDays` controls cooldown; 0 = once forever.
 //   - `delaySeconds` is the wait before the popup appears on first paint.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCmsSection } from "@/hooks/useCmsSection";
+import { useCourseOptions } from "@/hooks/useCourseOptions";
 import {
   resolveAssetUrl,
   submitDemoRequest,
@@ -35,8 +36,10 @@ import {
   demoRequestSchema,
   sanitizePhone,
   validateField,
-  type DemoRequestInput,
+  type DemoRequestFormValues,
 } from "@/lib/api-schemas";
+import { GmailLocalPartField } from "@/components/forms/GmailLocalPartInputRow";
+import { sanitizeGmailLocalTyping } from "@/lib/gmail-local-part";
 
 const STORAGE_KEY = "techu.welcome_popup";
 
@@ -102,7 +105,7 @@ function shouldShow(cfg: WelcomePopupData): boolean {
   return ageMs > cfg.showAgainAfterDays * 24 * 60 * 60 * 1000;
 }
 
-const empty: DemoRequestInput = {
+const empty: DemoRequestFormValues = {
   fullName: "",
   email: "",
   phone: "",
@@ -114,24 +117,21 @@ export function WelcomePopup() {
   const [open, setOpen] = useState(false);
   const triggered = useRef(false);
 
-  const courseOptions = useMemo(
-    () =>
-      cfg.courseOptions?.length ? cfg.courseOptions : FALLBACK.courseOptions,
-    [cfg.courseOptions],
-  );
+  // Hybrid list: any admin-curated welcome-popup options + built-in courses +
+  // published admin-created catalog courses, deduped.
+  const courseOptions = useCourseOptions(cfg.courseOptions);
 
-  const [form, setForm] = useState<DemoRequestInput>({
+  const [form, setForm] = useState<DemoRequestFormValues>({
     ...empty,
     course: courseOptions[0] ?? "",
   });
   const [errors, setErrors] = useState<
-    Partial<Record<keyof DemoRequestInput, string>>
+    Partial<Record<keyof DemoRequestFormValues, string>>
   >({});
   const [touched, setTouched] = useState<
-    Partial<Record<keyof DemoRequestInput, boolean>>
+    Partial<Record<keyof DemoRequestFormValues, boolean>>
   >({});
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
 
   // Schedule the popup once the CMS config has loaded.
   useEffect(() => {
@@ -148,30 +148,40 @@ export function WelcomePopup() {
     setForm((f) => (f.course ? f : { ...f, course: courseOptions[0] ?? "" }));
   }, [courseOptions]);
 
-  const update = <K extends keyof DemoRequestInput>(
+  const update = <K extends keyof DemoRequestFormValues>(
     key: K,
-    value: DemoRequestInput[K],
+    value: DemoRequestFormValues[K],
   ) => {
     setForm((f) => {
-      const next = { ...f, [key]: value };
+      const next = {
+        ...f,
+        [key]: key === "email" ? sanitizeGmailLocalTyping(String(value)) : value,
+      } as DemoRequestFormValues;
       if (touched[key]) {
-        const msg = validateField(demoRequestSchema, key, value, next);
+        const msg = validateField(demoRequestSchema, key, next[key], next);
         setErrors((e) => ({ ...e, [key]: msg }));
       }
       return next;
     });
   };
 
-  const blur = <K extends keyof DemoRequestInput>(key: K) => {
+  const blur = <K extends keyof DemoRequestFormValues>(key: K) => {
     setTouched((t) => ({ ...t, [key]: true }));
+    const merged = { ...form };
+    if (key === "phone") {
+      merged.phone = sanitizePhone(form.phone);
+      setForm(merged);
+    } else if (key === "email") {
+      merged.email = sanitizeGmailLocalTyping(form.email);
+      setForm(merged);
+    }
     const value =
-      key === "phone" ? (sanitizePhone(form.phone) as never) : form[key];
-    if (key === "phone")
-      setForm((f) => ({ ...f, phone: value as unknown as string }));
-    const msg = validateField(demoRequestSchema, key, value, {
-      ...form,
-      [key]: value,
-    });
+      key === "phone"
+        ? merged.phone
+        : key === "email"
+          ? merged.email
+          : merged[key];
+    const msg = validateField(demoRequestSchema, key, value, merged);
     setErrors((e) => ({ ...e, [key]: msg }));
   };
 
@@ -179,9 +189,11 @@ export function WelcomePopup() {
     e.preventDefault();
     const parsed = demoRequestSchema.safeParse(form);
     if (!parsed.success) {
-      const fieldErrors: Partial<Record<keyof DemoRequestInput, string>> = {};
+      const fieldErrors: Partial<
+        Record<keyof DemoRequestFormValues, string>
+      > = {};
       for (const issue of parsed.error.issues) {
-        const key = issue.path[0] as keyof DemoRequestInput;
+        const key = issue.path[0] as keyof DemoRequestFormValues;
         if (key && !fieldErrors[key]) fieldErrors[key] = issue.message;
       }
       setErrors(fieldErrors);
@@ -210,7 +222,11 @@ export function WelcomePopup() {
         version: cfg.version ?? 1,
         submitted: true,
       });
-      setSubmitted(true);
+      toast.success(
+        "You're in! Our admissions team will reach out within one working day.",
+      );
+      setForm({ ...empty, course: courseOptions[0] ?? "" });
+      setOpen(false);
     } finally {
       setSubmitting(false);
     }
@@ -233,41 +249,8 @@ export function WelcomePopup() {
         else setOpen(true);
       }}
     >
-      <DialogContent className="max-w-2xl gap-0 overflow-hidden p-0">
-        {submitted ? (
-          <div className="px-6 py-10 text-center sm:px-10 sm:py-12">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2.5}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-6 w-6"
-              >
-                <path d="M5 12l5 5L20 7" />
-              </svg>
-            </div>
-            <DialogHeader>
-              <DialogTitle className="mt-4 text-xl text-foreground">
-                You're in — see you soon!
-              </DialogTitle>
-              <DialogDescription className="mt-1 text-sm">
-                Our admissions team will reach out within one working day. In
-                the meantime feel free to keep exploring TechU.
-              </DialogDescription>
-            </DialogHeader>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="mt-6 inline-flex rounded-xl bg-brand-orange px-5 py-2.5 text-sm font-semibold text-white hover:brightness-110"
-            >
-              Continue browsing
-            </button>
-          </div>
-        ) : (
-          <div className="grid sm:grid-cols-[1.05fr_1fr]">
+      <DialogContent className="max-w-2xl gap-0 overflow-y-auto p-0">
+        <div className="grid sm:grid-cols-[1.05fr_1fr]">
             {/* Left: visual + value prop */}
             <div className="relative hidden overflow-hidden bg-brand-gradient p-6 text-white sm:flex sm:flex-col sm:justify-end">
               <div
@@ -342,15 +325,12 @@ export function WelcomePopup() {
                   autoComplete="name"
                   maxLength={100}
                 />
-                <Field
-                  label="Email"
-                  type="email"
+                <GmailLocalPartField
+                  id="welcome-email"
                   value={form.email}
-                  onChange={(v) => update("email", v)}
+                  onValueChange={(v) => update("email", v)}
                   onBlur={() => blur("email")}
                   error={errors.email}
-                  autoComplete="email"
-                  maxLength={255}
                 />
                 <Field
                   label="Phone"
@@ -393,7 +373,6 @@ export function WelcomePopup() {
               </form>
             </div>
           </div>
-        )}
       </DialogContent>
     </Dialog>
   );
@@ -451,8 +430,11 @@ function Field({
           autoComplete={autoComplete}
           inputMode={inputMode}
           maxLength={maxLength}
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck={false}
           aria-invalid={!!error}
-          className="w-full bg-transparent py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+          className="min-w-0 flex-1 bg-transparent py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
         />
       </div>
       {error && <p className="mt-1 text-[11px] text-red-600">{error}</p>}

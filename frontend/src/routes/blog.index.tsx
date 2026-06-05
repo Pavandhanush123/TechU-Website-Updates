@@ -51,7 +51,7 @@ function BlogIndex() {
       <SiteHeader />
 
       <section className="border-b border-border bg-muted/30 py-12 sm:py-16 lg:py-20">
-        <div className="mx-auto max-w-[1200px] px-4 text-center sm:px-6 lg:px-10">
+        <div className="mx-auto max-w-page px-4 text-center sm:px-6 lg:px-10">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-purple/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-purple">
             TechU Blog
           </span>
@@ -66,7 +66,7 @@ function BlogIndex() {
       </section>
 
       <section className="py-12 sm:py-16 lg:py-20">
-        <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-10">
+        <div className="mx-auto max-w-page px-4 sm:px-6 lg:px-10">
           {posts === null && !error ? (
             <BlogGridSkeleton />
           ) : error ? (

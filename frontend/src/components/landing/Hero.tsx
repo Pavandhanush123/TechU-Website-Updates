@@ -18,7 +18,6 @@ const FALLBACK: HeroData = {
   livePillText: "Register for Free Demo",
   slides: [
     {
-      badge: "Powered by TechU",
       titleStart: "Kickstart Your Career with ",
       titleHighlight: "Job-Ready Tech Courses",
       titleEnd: "",
@@ -35,7 +34,6 @@ const FALLBACK: HeroData = {
       alt: "Two AI engineers collaborating at a workstation",
     },
     {
-      badge: "UI/UX Design",
       titleStart: "Shape Ideas Into ",
       titleHighlight: "Stunning Digital Experiences",
       titleEnd: "",
@@ -48,7 +46,6 @@ const FALLBACK: HeroData = {
       alt: "Designer crafting UI/UX layouts on a large monitor",
     },
     {
-      badge: "Data Science & AI",
       titleStart: "Unlock the ",
       titleHighlight: "Power of Data",
       titleEnd: " with AI & ML",
@@ -65,7 +62,7 @@ const FALLBACK: HeroData = {
 
 function resolveImage(slide: HeroSlide, idx: number): string {
   if (slide.image && slide.image.trim()) return resolveAssetUrl(slide.image);
-  return FALLBACK_IMAGES[idx % FALLBACK_IMAGES.length];
+  return FALLBACK_IMAGES.at(idx % FALLBACK_IMAGES.length) || FALLBACK_IMAGES[0];
 }
 
 export function Hero({ onOpenDemo }: HeroProps) {
@@ -116,55 +113,40 @@ export function Hero({ onOpenDemo }: HeroProps) {
                   : "opacity-0 pointer-events-none",
               ].join(" ")}
             >
-              <div className="mx-auto grid max-w-[1400px] items-start gap-8 px-4 pt-8 pb-10 sm:gap-12 sm:px-6 sm:pt-12 sm:pb-14 lg:grid-cols-2 lg:items-center lg:gap-12 lg:px-10 lg:pt-14 lg:pb-16">
-                <div className="flex min-h-[560px] flex-col items-center text-center lg:min-h-[620px] lg:items-start lg:text-left">
-                  <div
-                    key={`badge-${index}-${i}`}
-                    className={
-                      isActive
-                        ? "animate-hero-rise-soft inline-flex w-fit items-center gap-2 rounded-full border border-white/40 bg-white/5 px-3.5 py-1.5 text-xs sm:text-sm [animation-delay:120ms]"
-                        : "inline-flex w-fit items-center gap-2 rounded-full border border-white/40 bg-white/5 px-3.5 py-1.5 text-xs sm:text-sm opacity-0"
-                    }
-                  >
-                    <span
-                      className="h-2 w-2 rounded-full bg-white animate-pulse"
-                      aria-hidden
-                    />
-                    {slide.badge}
-                  </div>
-
-                  <div className="mt-5 min-h-[8.5rem] sm:mt-6 sm:min-h-[9.5rem] lg:min-h-[12.5rem]">
+              <div className="mx-auto grid max-w-page items-start gap-6 px-4 pt-4 pb-10 sm:gap-8 sm:px-6 sm:pt-6 sm:pb-12 lg:grid-cols-2 lg:items-center lg:gap-8 lg:px-8 lg:pt-8 lg:pb-14">
+                <div className="flex min-h-0 flex-col items-center text-center lg:items-start lg:text-left">
+                  <div className="mt-0 min-h-[6rem] sm:min-h-[6.5rem] lg:min-h-[8rem]">
                     <h1
                       key={`title-${index}-${i}`}
                       className={
                         isActive
-                          ? "animate-hero-rise text-[clamp(2rem,7vw,2.75rem)] font-bold leading-[1.1] tracking-tight sm:text-5xl lg:text-[60px] xl:text-[64px] lg:leading-[1.05] [animation-delay:240ms]"
-                          : "text-[clamp(2rem,7vw,2.75rem)] font-bold leading-[1.1] tracking-tight sm:text-5xl lg:text-[60px] xl:text-[64px] lg:leading-[1.05] opacity-0"
+                          ? "animate-hero-rise text-[clamp(1.75rem,6vw,2.5rem)] font-bold leading-[1.12] tracking-tight sm:text-4xl lg:text-[52px] xl:text-[56px] lg:leading-[1.06] [animation-delay:240ms]"
+                          : "text-[clamp(1.75rem,6vw,2.5rem)] font-bold leading-[1.12] tracking-tight sm:text-4xl lg:text-[52px] xl:text-[56px] lg:leading-[1.06] opacity-0"
                       }
                     >
                       {slide.titleStart}
-                      <span className="underline decoration-2 underline-offset-[6px] sm:underline-offset-[10px]">
+                      <span className="underline decoration-2 underline-offset-[5px] sm:underline-offset-[8px]">
                         {slide.titleHighlight}
                       </span>
                       {slide.titleEnd}
                     </h1>
                   </div>
 
-                  <div className="mt-5 min-h-[3.5rem] sm:mt-6 sm:min-h-[4.5rem]">
+                  <div className="mt-3 min-h-[3rem] sm:mt-4 sm:min-h-[3.25rem]">
                     <p
                       key={`desc-${index}-${i}`}
                       className={
                         isActive
-                          ? "animate-hero-rise-soft max-w-xl text-base text-white/90 sm:text-lg [animation-delay:380ms]"
-                          : "max-w-xl text-base text-white/90 sm:text-lg opacity-0"
+                          ? "animate-hero-rise-soft max-w-xl text-sm text-white/90 sm:text-base [animation-delay:380ms]"
+                          : "max-w-xl text-sm text-white/90 sm:text-base opacity-0"
                       }
                     >
                       {slide.description.replace(/\n/g, " ")}
                     </p>
                   </div>
 
-                  <div className="mt-7 min-h-[3.5rem]">
-                    <ul className="flex flex-wrap justify-center gap-x-6 gap-y-3 text-sm text-white sm:gap-x-8 sm:text-[15px] lg:justify-start">
+                  <div className="mt-4 min-h-[2.75rem] sm:min-h-[3rem]">
+                    <ul className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-white sm:gap-x-6 sm:text-sm lg:justify-start">
                       {slide.features.map((f, fi) => (
                         <li
                           key={`${index}-${f}`}
@@ -179,8 +161,8 @@ export function Hero({ onOpenDemo }: HeroProps) {
                               : undefined
                           }
                         >
-                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500">
-                            <Check className="h-3 w-3" strokeWidth={3} />
+                          <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-500 sm:h-5 sm:w-5">
+                            <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3" strokeWidth={3} />
                           </span>
                           {f}
                         </li>
@@ -192,14 +174,14 @@ export function Hero({ onOpenDemo }: HeroProps) {
                     key={`cta-${index}-${i}`}
                     className={
                       isActive
-                        ? "animate-hero-rise-soft mt-auto flex w-full flex-col items-stretch gap-3 pt-8 sm:w-auto sm:flex-row sm:items-center sm:flex-wrap [animation-delay:780ms]"
-                        : "mt-auto flex w-full flex-col items-stretch gap-3 pt-8 sm:w-auto sm:flex-row sm:items-center sm:flex-wrap opacity-0"
+                        ? "animate-hero-rise-soft mt-auto flex w-full flex-col items-stretch gap-2.5 pt-4 sm:w-auto sm:flex-row sm:items-center sm:flex-wrap sm:gap-3 [animation-delay:780ms]"
+                        : "mt-auto flex w-full flex-col items-stretch gap-2.5 pt-4 sm:w-auto sm:flex-row sm:items-center sm:flex-wrap sm:gap-3 opacity-0"
                     }
                   >
                     <button
                       type="button"
                       onClick={onOpenDemo}
-                      className="group inline-flex items-center justify-center gap-2 rounded-xl bg-brand-orange px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-black/10 transition hover:brightness-110 hover:-translate-y-0.5 hover:shadow-xl"
+                      className="group inline-flex items-center justify-center gap-2 rounded-xl bg-brand-orange px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-black/10 transition hover:brightness-110 hover:-translate-y-0.5 hover:shadow-xl sm:px-6 sm:text-base"
                     >
                       {slide.primaryCta.trim().toLowerCase() === "join now"
                         ? "Enroll Now"
@@ -208,13 +190,13 @@ export function Hero({ onOpenDemo }: HeroProps) {
                     </button>
                     <Link
                       to="/courses"
-                      className="rounded-xl border border-white/70 bg-white/5 px-6 py-3.5 text-base font-semibold text-white transition hover:bg-white/15 text-center"
+                      className="rounded-xl border border-white/70 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/15 text-center sm:px-6 sm:text-base"
                     >
                       {slide.secondaryCta}
                     </Link>
                   </div>
 
-                  <div className="mt-8 flex items-center justify-center gap-3 lg:justify-start">
+                  <div className="mt-4 mb-3 flex items-center justify-center gap-2 pb-1 sm:mt-5 sm:mb-4 sm:gap-3 sm:pb-2 lg:justify-start">
                     {slides.map((_, j) => {
                       const dotActive = j === index;
                       return (
@@ -247,8 +229,8 @@ export function Hero({ onOpenDemo }: HeroProps) {
                     key={`frame-${index}-${i}`}
                     className={
                       isActive
-                        ? "animate-hero-image-in relative aspect-[4/3] overflow-hidden rounded-2xl shadow-2xl shadow-black/20 ring-1 ring-white/10 sm:rounded-3xl lg:aspect-[5/4]"
-                        : "relative aspect-[4/3] overflow-hidden rounded-2xl shadow-2xl shadow-black/20 ring-1 ring-white/10 sm:rounded-3xl lg:aspect-[5/4] opacity-0"
+                        ? "animate-hero-image-in relative aspect-[4/3] max-h-[280px] overflow-hidden rounded-2xl shadow-2xl shadow-black/20 ring-1 ring-white/10 sm:max-h-[340px] sm:rounded-3xl lg:aspect-auto lg:max-h-[min(48vh,400px)] xl:max-h-[440px]"
+                        : "relative aspect-[4/3] max-h-[280px] overflow-hidden rounded-2xl shadow-2xl shadow-black/20 ring-1 ring-white/10 sm:max-h-[340px] sm:rounded-3xl lg:aspect-auto lg:max-h-[min(48vh,400px)] xl:max-h-[440px] opacity-0"
                     }
                   >
                     <img
@@ -274,7 +256,7 @@ export function Hero({ onOpenDemo }: HeroProps) {
                   <button
                     type="button"
                     onClick={onOpenDemo}
-                    className="absolute -bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-white px-3.5 py-2.5 text-xs font-semibold text-foreground shadow-xl ring-1 ring-black/5 transition hover:scale-[1.02] sm:-bottom-6 sm:gap-3 sm:px-5 sm:py-3 sm:text-base"
+                    className="absolute -bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-white px-3 py-2 text-xs font-semibold text-foreground shadow-xl ring-1 ring-black/5 transition hover:scale-[1.02] sm:-bottom-5 sm:gap-2.5 sm:px-4 sm:py-2.5 sm:text-sm lg:text-base"
                   >
                     <span className="flex items-center gap-1 rounded-md bg-red-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white sm:px-2 sm:py-1 sm:text-[10px]">
                       <Radio className="h-2.5 w-2.5 sm:h-3 sm:w-3" />

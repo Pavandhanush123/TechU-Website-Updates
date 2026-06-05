@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Calendar, Clock, Users } from "lucide-react";
 import { DemoRequestDialog } from "@/components/landing/DemoRequestDialog";
 import { Reveal } from "@/components/Reveal";
@@ -40,9 +40,23 @@ const FALLBACK: WebinarsData = {
   ],
 };
 
+function resolveWebinarsDisplay(raw: WebinarsData, fb: WebinarsData): WebinarsData {
+  const title =
+    typeof raw.title === "string" && raw.title.trim() ? raw.title.trim() : fb.title;
+  const subtitle =
+    typeof raw.subtitle === "string" && raw.subtitle.trim()
+      ? raw.subtitle.trim()
+      : fb.subtitle;
+  const rawItems = raw.items;
+  const items =
+    Array.isArray(rawItems) && rawItems.length > 0 ? rawItems : fb.items;
+  return { ...raw, title, subtitle, items };
+}
+
 export function WebinarsSection() {
-  const data = useCmsSection<WebinarsData>("webinars", FALLBACK);
-  const items = Array.isArray(data.items) ? data.items : FALLBACK.items;
+  const raw = useCmsSection<WebinarsData>("webinars", FALLBACK);
+  const data = useMemo(() => resolveWebinarsDisplay(raw, FALLBACK), [raw]);
+  const items = data.items;
   const [open, setOpen] = useState(false);
   const [topic, setTopic] = useState<string | undefined>(undefined);
 
@@ -51,7 +65,7 @@ export function WebinarsSection() {
       id="webinars"
       className="scroll-mt-24 bg-background py-10 sm:py-12"
     >
-      <div className="mx-auto max-w-[1320px] px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-page px-4 sm:px-6 lg:px-8">
         <div className="rounded-2xl bg-brand-gradient px-4 py-10 sm:rounded-3xl sm:px-10 sm:py-16 lg:px-16 lg:py-20">
           <div className="text-center text-white">
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl lg:text-[40px]">

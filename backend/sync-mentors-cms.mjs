@@ -1,23 +1,26 @@
 /**
  * Upserts the `mentors` CMS row so public `/api/cms/sections/mentors` matches trainer roster.
- * Run from backend: node sync-mentors-cms.mjs
+ * Run from backend: node --env-file=.env sync-mentors-cms.mjs
  */
+import "./src/ensure-database-url.js";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 const mentorsPayload = {
+  enabled: false,
   title: "Learn from Industry Experts",
   subtitle:
     "Our mentors are working professionals from top tech companies with 10+ years of experience",
   items: [
     {
       name: "Vishal",
-      role: "Full Stack Trainer",
+      role: "MERN STACK developer + trainer",
       expertise:
         "End-to-end web development · Live mentorship · Industry-aligned projects",
       years: "Expert Mentor",
       image: "",
+      track: "MERN Stack",
     },
     {
       name: "Tirupathi Rao",
@@ -26,6 +29,7 @@ const mentorsPayload = {
         "Modern stacks · Backend & frontend fundamentals · Hands-on labs",
       years: "Expert Mentor",
       image: "",
+      track: "Full Stack",
     },
     {
       name: "Sai Krishna Jeedipalli",
@@ -33,26 +37,46 @@ const mentorsPayload = {
       expertise: "Figma, UX research, product design",
       years: "Expert Mentor",
       image: "",
+      track: "UI/UX",
     },
     {
-      name: "PAVAN Kumar",
+      name: "Pavan Kumar",
       role: "Data Analytics & AI/ML Trainer",
-      expertise: "ML, DL, computer vision",
+      expertise:
+        "Machine learning, deep learning, computer vision, and analytics pipelines",
       years: "2 years · ML Engineer",
       image: "",
+      track: "Data & AI/ML",
     },
   ],
 };
 
 try {
+  const existing = await prisma.siteContent.findUnique({
+    where: { sectionKey: "mentors" },
+  });
+  const prev =
+    existing?.data && typeof existing.data === "object" && !Array.isArray(existing.data)
+      ? existing.data
+      : {};
+  const mergedPayload = {
+    ...mentorsPayload,
+    enabled:
+      typeof prev.enabled === "boolean" ? prev.enabled : mentorsPayload.enabled,
+  };
+
   await prisma.siteContent.upsert({
     where: { sectionKey: "mentors" },
     create: {
       sectionKey: "mentors",
-      data: mentorsPayload,
+      data: mergedPayload,
     },
     update: {
-      data: mentorsPayload,
+      data: {
+        ...mentorsPayload,
+        enabled:
+          typeof prev.enabled === "boolean" ? prev.enabled : mentorsPayload.enabled,
+      },
     },
   });
   console.log("OK: mentors section synced.");

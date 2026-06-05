@@ -7,18 +7,18 @@ import {
   getAdminSection,
   listAdminSections,
   updateAdminSection,
-  type CourseSearchData,
   type CmsSection,
   type CmsSectionKey,
 } from "@/lib/api";
-import { normalizeCourseSearchData } from "@/lib/course-search-options";
 import { ADMIN_SESSION_READY_EVENT } from "@/lib/admin-session-events";
 import { AdminShell } from "@/components/admin/AdminShell";
 import {
   CmsFieldEditor,
   CmsRawEditor,
 } from "@/components/admin/CmsFieldEditor";
+import { CoursesCatalogEditor } from "@/components/admin/CoursesCatalogEditor";
 import { invalidateCmsSectionCache } from "@/hooks/useCmsSection";
+import type { CoursesCatalogData } from "@/lib/api";
 
 export const Route = createFileRoute("/admin/content")({
   component: AdminContentRoute,
@@ -28,9 +28,8 @@ const SECTION_LABELS: Record<CmsSectionKey, string> = {
   announcement_bar: "Announcement Bar",
   site_header: "Site Header",
   hero: "Homepage Hero",
-  course_search: "Course Search",
-  upcoming_courses: "Upcoming Courses",
-  mentors: "Mentors",
+  upcoming_courses: "Homepage Course Showcase",
+  mentors: "Mentors homepage",
   webinars: "Webinars & Events",
   infrastructure: "Infrastructure / Stats",
   cta_banner: "CTA Banner",
@@ -42,17 +41,18 @@ const SECTION_LABELS: Record<CmsSectionKey, string> = {
   seo_home: "SEO — Homepage",
   seo_courses: "SEO — Courses page",
   seo_course_detail: "SEO — Course detail page",
+  courses_catalog: "Courses (add / edit)",
 };
 
 const SECTION_HINTS: Record<CmsSectionKey, string> = {
   announcement_bar:
     "The thin scrolling bar at the very top of the public site.",
   site_header: "Logo and main navigation.",
-  hero: "The big homepage carousel above the fold.",
-  course_search:
-    "Homepage search bar — course, delivery mode (from catalog tiers), and location. Rows sync with course pricing tiers (no separate schedule field).",
-  upcoming_courses: "Course cards on the homepage, grouped by delivery mode.",
-  mentors: "Mentor profile cards on the homepage.",
+  hero: "Carousel copy and images. Per-slide category pills are removed; historic `badge` keys are cleared when you save.",
+  upcoming_courses:
+    "The course cards shown ON THE HOMEPAGE only, grouped by the Online/Offline tabs. This is a hand-picked marketing showcase and is separate from the full course catalog — add or edit actual courses (and their pages) under \"Courses (add / edit)\".",
+  mentors:
+    "`enabled` publishes the mentors block on the homepage and restores header/footer `#mentors` links. Mentor cards scroll horizontally — each item supports name, role, expertise, years, track (badge), and image.",
   webinars: "Upcoming live webinars and events.",
   infrastructure: "Stats grid and supporting copy below the webinars section.",
   cta_banner: "Mid-page banner with Apply / Download Curriculum CTAs.",
@@ -66,6 +66,8 @@ const SECTION_HINTS: Record<CmsSectionKey, string> = {
   seo_home: "Page title, description, OG image for the homepage.",
   seo_courses: "SEO for the /courses page.",
   seo_course_detail: "SEO for course detail pages.",
+  courses_catalog:
+    "The full course catalog. Each published course gets its own page at /course-detail?course=<slug> and appears in the Courses listing. The 3 built-in courses (Full Stack, Data Analytics, UI/UX) are shown read-only since they're authored in code; courses you add here are fully editable. Fill in the core fields (title, slug, description, hero image, pricing tiers, modes) — the rest of the page (curriculum, tools, projects, etc.) uses shared defaults. Use a unique, URL-safe slug and toggle Published to make it live.",
 };
 
 const GROUPS: { label: string; keys: CmsSectionKey[] }[] = [
@@ -74,12 +76,14 @@ const GROUPS: { label: string; keys: CmsSectionKey[] }[] = [
     keys: ["announcement_bar", "site_header", "site_footer", "welcome_popup"],
   },
   {
+    label: "Optional homepage",
+    keys: ["mentors"],
+  },
+  {
     label: "Homepage",
     keys: [
       "hero",
-      "course_search",
       "upcoming_courses",
-      "mentors",
       "webinars",
       "infrastructure",
       "cta_banner",
@@ -89,12 +93,24 @@ const GROUPS: { label: string; keys: CmsSectionKey[] }[] = [
     ],
   },
   {
+    label: "Courses",
+    keys: ["courses_catalog"],
+  },
+  {
     label: "SEO",
     keys: ["seo_home", "seo_courses", "seo_course_detail"],
   },
 ];
 
 type SectionData = Record<string, unknown>;
+
+function mergeMentorsAdminPayload(raw: SectionData): SectionData {
+  const { enabled, ...rest } = raw;
+  return {
+    enabled: typeof enabled === "boolean" ? enabled : false,
+    ...rest,
+  };
+}
 
 function AdminContentRoute() {
   const [sections, setSections] = useState<CmsSection[]>([]);
@@ -152,11 +168,10 @@ function AdminContentRoute() {
       const res = await getAdminSection(activeKey);
       if (res.ok) {
         const next = res.section.data as SectionData;
-        if (activeKey === "course_search") {
-          const raw = JSON.parse(JSON.stringify(next)) as CourseSearchData;
-          const normalized = normalizeCourseSearchData(raw);
-          setData(normalized as SectionData);
-          setOriginalData(JSON.parse(JSON.stringify(raw)));
+        if (activeKey === "mentors") {
+          const merged = mergeMentorsAdminPayload(next);
+          setData(merged);
+          setOriginalData(JSON.parse(JSON.stringify(merged)));
         } else {
           setData(next);
           setOriginalData(JSON.parse(JSON.stringify(next)));
@@ -171,19 +186,29 @@ function AdminContentRoute() {
   const dirty =
     data !== null &&
     originalData !== null &&
-    (activeKey === "course_search"
-      ? JSON.stringify(data) !==
-        JSON.stringify(normalizeCourseSearchData(originalData as CourseSearchData))
-      : JSON.stringify(data) !== JSON.stringify(originalData));
+    JSON.stringify(data) !== JSON.stringify(originalData);
 
   const handleSave = async () => {
     if (!activeKey || !data) return;
     setSaving(true);
     try {
-      const payload =
-        activeKey === "course_search"
-          ? (normalizeCourseSearchData(data as CourseSearchData) as SectionData)
-          : data;
+      let payload: SectionData =
+        activeKey === "mentors" ? mergeMentorsAdminPayload(data) : data;
+      if (activeKey === "hero") {
+        const raw = JSON.parse(JSON.stringify(payload)) as Record<string, unknown>;
+        const slides = raw.slides;
+        if (Array.isArray(slides)) {
+          raw.slides = slides.map((item) => {
+            if (item && typeof item === "object" && !Array.isArray(item)) {
+              const next = { ...(item as Record<string, unknown>) };
+              delete next.badge;
+              return next;
+            }
+            return item;
+          });
+        }
+        payload = raw as SectionData;
+      }
       const res = await updateAdminSection(activeKey, payload);
       if (!res.ok) {
         toast.error(res.error || "Save failed");
@@ -195,10 +220,10 @@ function AdminContentRoute() {
         prev.map((s) => (s.key === activeKey ? res.section : s)),
       );
       const saved = res.section.data as SectionData;
-      if (activeKey === "course_search") {
-        const normalized = normalizeCourseSearchData(saved as CourseSearchData);
-        setOriginalData(JSON.parse(JSON.stringify(saved)));
-        setData(normalized as SectionData);
+      if (activeKey === "mentors") {
+        const merged = mergeMentorsAdminPayload(saved);
+        setOriginalData(JSON.parse(JSON.stringify(merged)));
+        setData(merged);
       } else {
         setOriginalData(JSON.parse(JSON.stringify(saved)));
         setData(saved);
@@ -210,15 +235,7 @@ function AdminContentRoute() {
 
   const handleReset = () => {
     if (!originalData) return;
-    if (activeKey === "course_search") {
-      setData(
-        normalizeCourseSearchData(
-          JSON.parse(JSON.stringify(originalData)) as CourseSearchData,
-        ) as SectionData,
-      );
-    } else {
-      setData(JSON.parse(JSON.stringify(originalData)));
-    }
+    setData(JSON.parse(JSON.stringify(originalData)));
   };
 
   const visibleSections = new Set(sections.map((s) => s.key));
@@ -351,10 +368,15 @@ function AdminContentRoute() {
                   activeKey === "announcement_bar" ? "lg:overflow-y-auto" : "",
                 ].join(" ")}
               >
-                {mode === "form" ? (
-                  <CmsFieldEditor value={data} onChange={setData} />
-                ) : (
+                {mode === "raw" ? (
                   <CmsRawEditor value={data} onChange={setData} />
+                ) : activeKey === "courses_catalog" ? (
+                  <CoursesCatalogEditor
+                    value={data as CoursesCatalogData}
+                    onChange={(next) => setData(next as SectionData)}
+                  />
+                ) : (
+                  <CmsFieldEditor value={data} onChange={setData} />
                 )}
               </div>
 

@@ -30,9 +30,9 @@ function CoursesPage() {
       <AnnouncementBar />
       <SiteHeader />
 
-      <section className="bg-background py-8 sm:py-10 lg:py-12">
-        <div className="mx-auto max-w-[900px] px-4 text-center sm:px-6">
-          <h1 className="text-[clamp(1.6rem,5vw,2.2rem)] font-extrabold tracking-tight text-foreground sm:text-4xl lg:text-5xl lg:leading-[1.12]">
+      <section className="bg-background pb-2 pt-8 sm:pb-4 sm:pt-10 lg:pt-12">
+        <div className="mx-auto max-w-page px-4 text-center sm:px-6 lg:px-10">
+          <h1 className="text-[clamp(1.6rem,5vw,2.2rem)] font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl lg:leading-[1.12]">
             Upcoming AI &amp; Tech Courses in Hyderabad &amp; Online
           </h1>
           <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground sm:mt-4 sm:text-base">

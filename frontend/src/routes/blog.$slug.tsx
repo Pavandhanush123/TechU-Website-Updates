@@ -270,7 +270,7 @@ function BlogDetail() {
 
       {status === "ok" && related.length > 0 && (
         <section className="border-t border-border bg-muted/30 py-12 sm:py-16">
-          <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-10">
+          <div className="mx-auto max-w-page px-4 sm:px-6 lg:px-10">
             <div className="flex items-end justify-between">
               <div>
                 <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">

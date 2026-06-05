@@ -5,6 +5,7 @@
 // functions that used raw SQL CREATE TABLE + INSERT statements.
 // Prisma Migrations handle table creation; this file handles default data.
 
+import "../src/ensure-database-url.js";
 import { PrismaClient } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 import crypto from "node:crypto";
@@ -107,7 +108,6 @@ const CMS_DEFAULTS = {
   hero: {
     slides: [
       {
-        badge: "Powered by TechU",
         titleStart: "Kickstart Your Career with ",
         titleHighlight: "Job-Ready Tech Courses",
         titleEnd: "",
@@ -124,7 +124,6 @@ const CMS_DEFAULTS = {
         alt: "Two AI engineers collaborating at a workstation",
       },
       {
-        badge: "UI/UX Design",
         titleStart: "Shape Ideas Into ",
         titleHighlight: "Stunning Digital Experiences",
         titleEnd: "",
@@ -137,7 +136,6 @@ const CMS_DEFAULTS = {
         alt: "Designer crafting UI/UX layouts on a large monitor",
       },
       {
-        badge: "Data Science & AI",
         titleStart: "Unlock the ",
         titleHighlight: "Power of Data",
         titleEnd: " with AI & ML",
@@ -157,20 +155,6 @@ const CMS_DEFAULTS = {
     livePillLabel: "Live",
     livePillText: "Register for Free Demo",
   },
-  course_search: {
-    courses: [
-      { title: "Full Stack Development with Claude AI", slug: "fullstack", mode: "Online Live", location: "Online" },
-      { title: "Full Stack Development with Claude AI", slug: "fullstack", mode: "Offline (Hyderabad)", location: "Madhapur" },
-      { title: "Full Stack Development with Claude AI", slug: "fullstack", mode: "Coding Entrepreneur", location: "Madhapur" },
-      { title: "Full Stack Development with Claude AI", slug: "fullstack", mode: "Advanced Coding Entrepreneur", location: "Madhapur" },
-      { title: "Data Analytics with AI / ML", slug: "data-analytics", mode: "Online Live", location: "Online" },
-      { title: "Data Analytics with AI / ML", slug: "data-analytics", mode: "Offline (Hyderabad)", location: "Madhapur" },
-      { title: "UI/UX Designing + Digital Marketing + Graphic Designing with AI", slug: "uiux", mode: "Online Live", location: "Online" },
-      { title: "UI/UX Designing + Digital Marketing + Graphic Designing with AI", slug: "uiux", mode: "Offline (Hyderabad)", location: "Hitech City" },
-      { title: "UI/UX Designing + Digital Marketing + Graphic Designing with AI", slug: "uiux", mode: "Digital Entrepreneur", location: "Hitech City" },
-      { title: "UI/UX Designing + Digital Marketing + Graphic Designing with AI", slug: "uiux", mode: "Advanced Digital Entrepreneur", location: "Hitech City" },
-    ],
-  },
   upcoming_courses: {
     title: "Explore Our Upcoming Courses",
     subtitle: "Hand-picked courses designed by industry experts to help you land your dream tech job",
@@ -181,19 +165,17 @@ const CMS_DEFAULTS = {
       { title: "Full Stack Development", image: "", rating: 4.9, students: "3,567", duration: "4 Months", level: "Beginner", mode: "Online", upcoming: true, batchNote: "" },
       { title: "Data Analytics with AI / ML", image: "", rating: 4.8, students: "2,980", duration: "4 Months", level: "Beginner", mode: "Online", upcoming: false, batchNote: "" },
       { title: "UI/UX Design", image: "", rating: 4.9, students: "3,210", duration: "3 Months", level: "Beginner", mode: "Online", upcoming: false, batchNote: "" },
-      { title: "Full Stack Development", image: "", rating: 4.8, students: "5,210", duration: "Self-paced", level: "Beginner", mode: "Recorded", upcoming: false, batchNote: "" },
-      { title: "Data Analytics with AI / ML", image: "", rating: 4.7, students: "2,140", duration: "Self-paced", level: "Beginner", mode: "Recorded", upcoming: false, batchNote: "" },
-      { title: "UI/UX Design", image: "", rating: 4.8, students: "1,890", duration: "Self-paced", level: "Beginner", mode: "Recorded", upcoming: false, batchNote: "" },
     ],
   },
   mentors: {
+    enabled: false,
     title: "Learn from Industry Experts",
     subtitle: "Our mentors are working professionals from top tech companies with 10+ years of experience",
     items: [
-      { name: "Vishal", role: "Full Stack Trainer", expertise: "End-to-end web development · Live mentorship · Industry-aligned projects", years: "Expert Mentor", image: "" },
-      { name: "Tirupathi Rao", role: "Full Stack Trainer", expertise: "Modern stacks · Backend & frontend fundamentals · Hands-on labs", years: "Expert Mentor", image: "" },
-      { name: "Sai Krishna Jeedipalli", role: "UI/UX Trainer", expertise: "Figma, UX research, product design", years: "Expert Mentor", image: "" },
-      { name: "PAVAN Kumar", role: "Data Analytics & AI/ML Trainer", expertise: "ML, DL, computer vision", years: "2 years · ML Engineer", image: "" },
+      { name: "Vishal", role: "MERN STACK developer + trainer", expertise: "End-to-end web development · Live mentorship · Industry-aligned projects", years: "Expert Mentor", image: "", track: "MERN Stack" },
+      { name: "Tirupathi Rao", role: "Full Stack Trainer", expertise: "Modern stacks · Backend & frontend fundamentals · Hands-on labs", years: "Expert Mentor", image: "", track: "Full Stack" },
+      { name: "Sai Krishna Jeedipalli", role: "UI/UX Trainer", expertise: "Figma, UX research, product design", years: "Expert Mentor", image: "", track: "UI/UX" },
+      { name: "Pavan Kumar", role: "Data Analytics & AI/ML Trainer", expertise: "Machine learning, deep learning, computer vision, and analytics pipelines", years: "2 years · ML Engineer", image: "", track: "Data & AI/ML" },
     ],
   },
   webinars: {
@@ -210,7 +192,7 @@ const CMS_DEFAULTS = {
     titleHighlight: "Real Learning",
     titleLine2: "Real Infrastructure",
     subtitle: "Hand-picked courses designed by industry experts to help you land your dream tech job",
-    body: "Step into TechU \u2014 Hyderabad\u2019s premium AI and full-stack training institute \u2014 built with industry-grade classrooms, collaborative learning spaces, and real-time mentorship environments designed to simulate the modern workplace.",
+    body: "",
     image: "",
     stats: [
       { label: "Graduate Placed", value: "500", suffix: "+" },
@@ -259,21 +241,17 @@ const CMS_DEFAULTS = {
     ],
   },
   final_cta: {
-    eyebrow: "Admissions Open \u00B7 2026 Batch",
     titleStart: "Ready to Start Your ",
     titleHighlight: "Tech Journey?",
     titleEnd: "",
-    description: "Join thousands of learners who have transformed their careers with TechU. Limited seats available for the upcoming 2026 batch.",
+    description: "Join thousands of students who have transformed their careers. Limited seats available for the 2026 batch.",
     primaryLabel: "Enroll Now \u2014 Limited Seats",
     primaryHref: "#contact",
-    secondaryLabel: "Talk to a Mentor",
-    secondaryHref: "#contact",
-    badges: ["EMI options available", "Money-back guarantee", "Next batch starting soon"],
+    badges: ["EMI options available", "Money-back guarantee"],
   },
   site_footer: {
     logoUrl: "",
     description: "Step confidently toward your personal and professional goals with TechU \u2014 your reliable guide to mastering in-demand tech skills with offline & online training.",
-    bullets: ["500+ Learner Reviews", "4.95 Average Rating", "100% Satisfied Students"],
     coursesLinks: [
       { label: "Full Stack Development", to: "/course-detail", search: { course: "fullstack" } },
       { label: "Data Analytics with AI / ML", to: "/course-detail", search: { course: "data-analytics" } },
@@ -285,7 +263,6 @@ const CMS_DEFAULTS = {
       { label: "Success Stories", href: "/#stories" },
       { label: "Blog", href: "/blog" },
       { label: "Webinars", href: "/#webinars" },
-      { label: "Contact", href: "/#contact" },
     ],
     email: "info@techu.in",
     phone: "+91 90001 44281",
@@ -326,6 +303,31 @@ const CMS_DEFAULTS = {
     description: "Detailed curriculum, mentors, projects, and outcomes.",
     canonical: "",
     ogImage: "",
+  },
+  courses_catalog: {
+    courses: [
+      {
+        published: false,
+        slug: "example-course",
+        title: "Example Course (template \u2014 unpublished)",
+        category: "Development",
+        badge: "Enrollment Open",
+        tagline: "Short one-line tagline shown under the title",
+        description: "A 1\u20132 sentence summary of the course shown in the hero and listings.",
+        metaTitle: "Example Course \u2014 TechU",
+        metaDescription: "SEO description for this course page (defaults to the description if left blank).",
+        heroImage: "",
+        brochureUrl: "",
+        duration: "4 Months",
+        rating: 4.8,
+        students: "1,000",
+        modes: ["Online", "Offline"],
+        pricingTiers: [
+          { id: "online", label: "Online Live", price: "\u20b965,000", originalPrice: "\u20b990,000", saveLabel: "Save \u20b925,000 - Limited Time", emi: "Or \u20b95,417/month with 0% EMI", subtitle: "Live classes + mentorship" },
+          { id: "offline", label: "Offline (Hyderabad)", price: "\u20b988,600", originalPrice: "\u20b91,20,000", saveLabel: "Save \u20b931,400 - Limited Time", emi: "Or \u20b97,383/month with 0% EMI", subtitle: "In-person learning" },
+        ],
+      },
+    ],
   },
 };
 

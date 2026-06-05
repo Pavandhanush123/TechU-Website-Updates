@@ -2,7 +2,26 @@
 // give immediate user feedback before sending to the API. The backend
 // re-validates everything; the client copy is only for UX.
 import { z } from "zod";
-import { isPassoutYearInRange } from "@/lib/passout-year";
+import { normalizeGmailLocalInput } from "@/lib/gmail-local-part";
+import { normalizeIndianNationalMobileDigits } from "@/lib/indian-phone";
+
+const GMAIL_LOCAL_MAX = 64;
+
+/** Lead forms: UI collects local part only; value becomes `local@gmail.com`. */
+const gmailLocalPartField = z
+  .string()
+  .transform((raw) => normalizeGmailLocalInput(raw))
+  .pipe(
+    z
+      .string()
+      .min(1, "Enter your Gmail username (part before @)")
+      .max(GMAIL_LOCAL_MAX, "Gmail username is too long")
+      .regex(
+        /^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$/,
+        "Use letters, numbers, dots, hyphens, or underscores only",
+      ),
+  )
+  .transform((local) => `${local}@gmail.com`);
 
 // Strip everything except digits and a single leading + before validating.
 export const sanitizePhone = (raw: string) => {
@@ -16,18 +35,7 @@ const fullNameField = z
   .string()
   .trim()
   .min(2, "Please enter your full name")
-  .max(100, "Name is too long")
-  .regex(
-    /^[A-Za-z][A-Za-z\s.'-]+$/,
-    "Use letters only (spaces, hyphens and apostrophes are fine)",
-  );
-
-const emailField = z
-  .string()
-  .trim()
-  .min(1, "Email is required")
-  .max(255, "Email is too long")
-  .email("Enter a valid email address");
+  .max(100, "Name is too long");
 
 // 10–15 digits, optional leading +. Indian numbers are 10 digits without
 // country code or 12 with +91 — both pass.
@@ -47,7 +55,7 @@ const phoneField = z
 
 /** UI shows +91 prefix; state holds up to 10 national digits — combine for validation/API. */
 export function wireContactNationalPhoneDigits(nationalDigits: string): string {
-  const d = nationalDigits.replace(/\D/g, "").slice(0, 10);
+  const d = normalizeIndianNationalMobileDigits(nationalDigits);
   if (!d.length) return "";
   return `+91${d}`;
 }
@@ -61,7 +69,10 @@ const contactSectionPhoneField = z
   .pipe(
     z
       .string()
-      .regex(/^\+?91\d{10}$|^\+?\d{10}$/, "Enter a valid 10-digit mobile number"),
+      .regex(
+        /^\+91\d{10}$/,
+        "Enter a valid 10-digit Indian mobile number",
+      ),
   );
 
 const courseField = z
@@ -89,41 +100,27 @@ const isExperienceYearsMonths = (value: string) => {
 
 export const demoRequestSchema = z.object({
   fullName: fullNameField,
-  email: emailField,
+  email: gmailLocalPartField,
   phone: phoneField,
   course: courseField,
 });
 export type DemoRequestInput = z.infer<typeof demoRequestSchema>;
+export type DemoRequestFormValues = z.input<typeof demoRequestSchema>;
 
 export const applicationSchema = z.object({
   fullName: fullNameField,
-  email: emailField,
+  email: gmailLocalPartField,
   phone: phoneField,
-  experience: z
-    .string()
-    .trim()
-    .min(1, "Please select your year of passing")
-    .max(80)
-    .refine(
-      (v) => {
-        const trimmed = v.trim();
-        if (isPassoutYearInRange(trimmed)) return true;
-        if (isExperienceYearsMonths(trimmed)) return true;
-        if (!/^\d{1,2}(\.\d)?$/.test(trimmed)) return false;
-        const n = Number(trimmed);
-        return Number.isFinite(n) && n >= 0 && n <= 50;
-      },
-      "Choose a valid graduation year from the list",
-    ),
   course: courseField,
   learningMode: z.string().trim().optional(),
 });
 export type ApplicationInput = z.infer<typeof applicationSchema>;
+export type ApplicationFormValues = z.input<typeof applicationSchema>;
 
 /** Homepage contact section only collects total work experience (years + months). */
 export const contactSectionApplicationSchema = z.object({
   fullName: fullNameField,
-  email: emailField,
+  email: gmailLocalPartField,
   phone: contactSectionPhoneField,
   experience: z
     .string()
@@ -140,11 +137,22 @@ export const contactSectionApplicationSchema = z.object({
 
 export const brochureRequestSchema = z.object({
   fullName: fullNameField,
-  email: emailField,
+  email: gmailLocalPartField,
   phone: phoneField,
   course: courseField,
 });
 export type BrochureRequestInput = z.infer<typeof brochureRequestSchema>;
+export type BrochureFormValues = z.input<typeof brochureRequestSchema>;
+
+export const isaProgramEnquirySchema = z.object({
+  fullName: fullNameField,
+  email: gmailLocalPartField,
+  phone: phoneField,
+  course: courseField,
+  preferredMode: z.enum(["Online", "Offline"]),
+});
+export type IsaProgramEnquiryInput = z.infer<typeof isaProgramEnquirySchema>;
+export type IsaProgramEnquiryFormValues = z.input<typeof isaProgramEnquirySchema>;
 
 // Validate a single field of a Zod object schema. Returns the error
 // message for that field, or undefined if it's valid. Used by forms to

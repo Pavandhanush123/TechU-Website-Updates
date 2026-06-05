@@ -67,7 +67,7 @@ export function AnnouncementBar() {
         </span>
       </div>
 
-      <div className="mx-auto hidden max-w-[1400px] items-center justify-between gap-4 px-6 py-2.5 text-sm sm:flex lg:px-10">
+      <div className="mx-auto hidden max-w-page items-center justify-between gap-4 px-6 py-2.5 text-sm sm:flex lg:px-10">
         <div className="hidden w-10 lg:block" aria-hidden />
         <div className="flex min-w-0 flex-1 items-center justify-center gap-2 text-center">
           <MessageCircle className="h-4 w-4 shrink-0" aria-hidden />

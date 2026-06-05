@@ -11,14 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { submitApplication } from "@/lib/api";
-import { applicationSchema } from "@/lib/api-schemas";
-import { getPassoutYearRange } from "@/lib/passout-year";
-
-const COURSE_OPTIONS = [
-  "Full Stack Development with Claude AI",
-  "Data Analytics with AI / ML",
-  "UI/UX Designing + Digital Marketing + Graphic Designing with AI",
-];
+import { applicationSchema, type ApplicationFormValues } from "@/lib/api-schemas";
+import { GmailLocalPartField } from "@/components/forms/GmailLocalPartInputRow";
+import { useCourseOptions } from "@/hooks/useCourseOptions";
 
 type Props = {
   open: boolean;
@@ -29,16 +24,6 @@ type Props = {
   selectedMode?: { label: string; subtitle: string };
 };
 
-const COUNTRY_CODES = [
-  { code: "+91", country: "IN", name: "India", length: 10 },
-  { code: "+1", country: "US/CA", name: "USA/Canada", length: 10 },
-  { code: "+44", country: "GB", name: "UK", length: 10 },
-  { code: "+971", country: "AE", name: "UAE", length: 9 },
-  { code: "+61", country: "AU", name: "Australia", length: 9 },
-  { code: "+65", country: "SG", name: "Singapore", length: 8 },
-  { code: "+49", country: "DE", name: "Germany", length: 11 },
-];
-
 export function ApplyDialog({
   open,
   onOpenChange,
@@ -47,32 +32,21 @@ export function ApplyDialog({
   selectedBatch,
   selectedMode,
 }: Props) {
-  const passoutRange = getPassoutYearRange();
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<ApplicationFormValues>({
     fullName: "",
     email: "",
     phone: "",
-    experience: "",
     course: courseTitle,
     learningMode: selectedMode?.label || "",
   });
-  const [countryCode, setCountryCode] = useState("+91");
   const [phoneNum, setPhoneNum] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
-  // Sync combined phone field
+  // Indian mobile only: fixed +91 prefix + the 10-digit national number.
   useEffect(() => {
-    setForm((f) => ({ ...f, phone: `${countryCode}${phoneNum}` }));
-  }, [countryCode, phoneNum]);
-
-  // Truncate phone number if limit changes
-  useEffect(() => {
-    const limit = COUNTRY_CODES.find((c) => c.code === countryCode)?.length || 15;
-    if (phoneNum.length > limit) {
-      setPhoneNum(phoneNum.substring(0, limit));
-    }
-  }, [countryCode, phoneNum.length]);
+    setForm((f) => ({ ...f, phone: phoneNum ? `+91${phoneNum}` : "" }));
+  }, [phoneNum]);
 
   useEffect(() => {
     if (open) setForm((f) => ({ ...f, course: courseTitle }));
@@ -84,10 +58,9 @@ export function ApplyDialog({
     }
   }, [open, selectedMode]);
 
-  const courseOptions =
-    courseTitle && !COURSE_OPTIONS.includes(courseTitle)
-      ? [courseTitle, ...COURSE_OPTIONS]
-      : COURSE_OPTIONS;
+  // Hybrid list: built-in courses + admin-created catalog courses, with the
+  // current page's course guaranteed present (even if unpublished).
+  const courseOptions = useCourseOptions(courseTitle);
 
   const applyHeadingCourse =
     form.course.trim() || courseTitle.trim() || courseOptions[0] || "this course";
@@ -120,11 +93,11 @@ export function ApplyDialog({
       }
       toast.success("Application submitted! Our team will reach out shortly.");
       onOpenChange(false);
+      setPhoneNum("");
       setForm({
         fullName: "",
         email: "",
         phone: "",
-        experience: "",
         course: courseTitle,
         learningMode: selectedMode?.label || "",
       });
@@ -148,26 +121,32 @@ export function ApplyDialog({
         </DialogHeader>
 
         {selectedBatch && selectedMode && batchMatchesSelectedCourse && (
-          <div className="mt-4 flex items-center justify-center gap-8 rounded-2xl border border-brand-purple/20 bg-brand-purple/5 px-4 py-4 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-purple text-white shadow-md shadow-brand-purple/20">
-                <Calendar className="h-4.5 w-4.5" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-brand-purple/70 uppercase tracking-wide">Batch Starts</span>
-                <span className="text-sm font-extrabold text-foreground">{selectedBatch.day} {selectedBatch.month}</span>
+          <div className="mt-4 grid grid-cols-2 gap-2.5">
+            <div className="flex items-center gap-2.5 rounded-2xl border border-brand-purple/15 bg-brand-purple/[0.06] px-3 py-3 sm:gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-purple text-white shadow-sm shadow-brand-purple/30">
+                <Calendar className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-brand-purple/70">
+                  Batch Starts
+                </div>
+                <div className="text-sm font-extrabold leading-snug text-foreground">
+                  {selectedBatch.day} {selectedBatch.month}
+                </div>
               </div>
             </div>
-            
-            <div className="h-10 w-px bg-brand-purple/15" />
-            
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-teal text-white shadow-md shadow-brand-teal/20">
-                <Users className="h-4.5 w-4.5" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-brand-teal/70 uppercase tracking-wide">Learning Mode</span>
-                <span className="text-sm font-extrabold text-foreground">{selectedMode.label}</span>
+
+            <div className="flex items-center gap-2.5 rounded-2xl border border-brand-teal/20 bg-brand-teal/[0.06] px-3 py-3 sm:gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-teal text-white shadow-sm shadow-brand-teal/30">
+                <Users className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-brand-teal/80">
+                  Learning Mode
+                </div>
+                <div className="line-clamp-2 text-sm font-extrabold leading-snug text-foreground">
+                  {selectedMode.label}
+                </div>
               </div>
             </div>
           </div>
@@ -187,52 +166,32 @@ export function ApplyDialog({
               <p className="mt-1 text-xs text-destructive">{errors.fullName}</p>
             )}
           </div>
-          <div>
-            <Label htmlFor="a-email">Email</Label>
-            <Input
-              id="a-email"
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              placeholder="you@example.com"
-              maxLength={255}
-            />
-            {errors.email && (
-              <p className="mt-1 text-xs text-destructive">{errors.email}</p>
-            )}
-          </div>
+          <GmailLocalPartField
+            id="a-email"
+            value={form.email}
+            onValueChange={(v) => setForm({ ...form, email: v })}
+            error={errors.email}
+          />
           <div>
             <Label htmlFor="a-phone">Phone Number</Label>
-            <div className="mt-1 flex gap-2">
-              <div className="relative w-28 shrink-0">
-                <select
-                  value={countryCode}
-                  onChange={(e) => setCountryCode(e.target.value)}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm shadow-sm transition-colors focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
-                >
-                  {COUNTRY_CODES.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.country} ({c.code})
-                    </option>
-                  ))}
-                  <option value="+">Other</option>
-                </select>
-              </div>
-              <div className="relative flex-1">
-                <Input
-                  id="a-phone"
-                  type="tel"
-                  value={phoneNum}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, "");
-                    const limit = COUNTRY_CODES.find(c => c.code === countryCode)?.length || 15;
-                    if (val.length <= limit) setPhoneNum(val);
-                  }}
-                  placeholder="Enter number"
-                  className="pl-9"
-                />
-                <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/50" />
-              </div>
+            <div className="mt-1 flex h-9 items-center gap-2 rounded-md border border-input bg-transparent px-3 shadow-sm transition-colors focus-within:border-brand-purple focus-within:ring-2 focus-within:ring-brand-purple/20">
+              <Phone className="h-4 w-4 shrink-0 text-muted-foreground/50" />
+              <span className="shrink-0 text-sm font-medium text-muted-foreground">
+                +91
+              </span>
+              <input
+                id="a-phone"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel-national"
+                value={phoneNum}
+                onChange={(e) =>
+                  setPhoneNum(e.target.value.replace(/\D/g, "").slice(0, 10))
+                }
+                placeholder="10-digit mobile number"
+                maxLength={10}
+                className="h-full flex-1 bg-transparent text-sm focus:outline-none"
+              />
             </div>
             {errors.phone && (
               <p className="mt-1 text-xs text-destructive">{errors.phone}</p>
@@ -267,33 +226,6 @@ export function ApplyDialog({
             </select>
             {errors.course && (
               <p className="mt-1 text-xs text-destructive">{errors.course}</p>
-            )}
-          </div>
-          <div>
-            <Label htmlFor="a-exp">Year of Passing</Label>
-            <select
-              id="a-exp"
-              value={form.experience}
-              onChange={(e) =>
-                setForm({ ...form, experience: e.target.value.trim() })
-              }
-              className="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus:border-brand-purple focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
-            >
-              <option value="">Select passing year</option>
-              {passoutRange.options.map((year) => (
-                <option key={year} value={String(year)}>
-                  {year}
-                </option>
-              ))}
-            </select>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Placement priority window: {passoutRange.startYear} -{" "}
-              {passoutRange.endYear} (auto-updates every April)
-            </p>
-            {errors.experience && (
-              <p className="mt-1 text-xs text-destructive">
-                {errors.experience}
-              </p>
             )}
           </div>
           <button

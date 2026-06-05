@@ -52,7 +52,7 @@ npm run dev
 ```bash
 cd frontend
 npm install
-# Configure .env (VITE_API_BASE_URL)
+# Configure .env — for staging frontend builds see VITE_API_BASE_URL=https://devserver.techu.in in .env.production / .env.example
 npm run dev
 ```
 

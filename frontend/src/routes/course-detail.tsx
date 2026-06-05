@@ -17,10 +17,19 @@ import { HiringCompanies } from "@/components/course-detail/HiringCompanies";
 import { Faq } from "@/components/course-detail/Faq";
 import { JourneyCta } from "@/components/course-detail/JourneyCta";
 import { CourseProvider } from "@/components/course-detail/CourseContext";
-import { getCourse } from "@/data/courses";
+import {
+  getCourse,
+  isStaticCourseSlug,
+  buildCourseContentFromCatalog,
+  type CourseContent,
+} from "@/data/courses";
+import { useCmsSection } from "@/hooks/useCmsSection";
+import { COURSES_CATALOG_FALLBACK, type CoursesCatalogData } from "@/lib/api";
 
 const searchSchema = z.object({
-  course: z.enum(["uiux", "fullstack", "data-analytics"]).optional(),
+  // Accepts built-in slugs (uiux/fullstack/data-analytics) and any
+  // admin-created catalog slug.
+  course: z.string().optional(),
 });
 
 export const Route = createFileRoute("/course-detail")({
@@ -30,7 +39,22 @@ export const Route = createFileRoute("/course-detail")({
 
 function CourseDetailPage() {
   const { course } = Route.useSearch();
-  const meta = getCourse(course);
+  const catalog = useCmsSection<CoursesCatalogData>(
+    "courses_catalog",
+    COURSES_CATALOG_FALLBACK,
+  );
+
+  // Built-in courses use their hand-authored content; admin-created catalog
+  // courses are built from core fields merged over shared defaults.
+  let resolvedContent: CourseContent | undefined;
+  if (!isStaticCourseSlug(course)) {
+    const entry = (catalog.courses ?? []).find(
+      (c) => c.slug === course && c.published !== false,
+    );
+    if (entry) resolvedContent = buildCourseContentFromCatalog(entry);
+  }
+
+  const meta = resolvedContent ?? getCourse(course);
   const path = course
     ? `/course-detail?course=${course}`
     : "/course-detail";
@@ -123,7 +147,7 @@ function CourseDetailPage() {
       <JsonLd id="ld-faq" data={faqSchema} />
       <AnnouncementBar />
       <SiteHeader />
-      <CourseProvider slug={course}>
+      <CourseProvider slug={course} content={resolvedContent}>
         <CourseHero />
         <WhoItsFor />
         <AiLearningSupport />

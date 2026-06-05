@@ -29,8 +29,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-type SourceFilter = "all" | "application" | "brochure" | "demo";
+type SourceFilter = "all" | "application" | "brochure" | "demo" | "isa_program_enquiry";
 type StatusFilter = "all" | LeadStatus;
+const ISA_PROGRAM_PREFIX = "ISA Program Enquiry — ";
+
+function isIsaProgramEnquiryLead(lead: Lead) {
+  return lead.course.startsWith(ISA_PROGRAM_PREFIX);
+}
+
+function sourceKeyForLead(lead: Lead): SourceFilter | "demo" {
+  if (isIsaProgramEnquiryLead(lead)) return "isa_program_enquiry";
+  return lead.source;
+}
 
 const STATUS_LABELS: Record<LeadStatus, string> = {
   new: "New",
@@ -50,7 +60,10 @@ const STATUS_BADGE: Record<LeadStatus, string> = {
 const COURSE_DETAIL_SPLIT = /\s+[—-]\s+/;
 
 function parseLeadCourseMeta(rawCourse: string) {
-  const [courseWithMode, detailRaw] = rawCourse.split(COURSE_DETAIL_SPLIT, 2);
+  const cleanedRaw = rawCourse.startsWith(ISA_PROGRAM_PREFIX)
+    ? rawCourse.slice(ISA_PROGRAM_PREFIX.length)
+    : rawCourse;
+  const [courseWithMode, detailRaw] = cleanedRaw.split(COURSE_DETAIL_SPLIT, 2);
   const modeMatch = courseWithMode.match(/\(([^)]+)\)\s*$/);
   const mode = modeMatch?.[1]?.trim() || null;
   const title = modeMatch
@@ -239,7 +252,7 @@ function AdminLeads() {
       const createdMs = new Date(l.created_at).getTime();
       if (rangeStartMs !== null && createdMs < rangeStartMs) return false;
       if (rangeEndMs !== null && createdMs > rangeEndMs) return false;
-      if (filter !== "all" && l.source !== filter) return false;
+      if (filter !== "all" && sourceKeyForLead(l) !== filter) return false;
       if (statusFilter !== "all" && l.status !== statusFilter) return false;
       return leadMatchesSearchQuery(l, query);
     });
@@ -250,7 +263,8 @@ function AdminLeads() {
       all: leads.length,
       application: leads.filter((l) => l.source === "application").length,
       brochure: leads.filter((l) => l.source === "brochure").length,
-      demo: leads.filter((l) => l.source === "demo").length,
+      demo: leads.filter((l) => l.source === "demo" && !isIsaProgramEnquiryLead(l)).length,
+      isa_program_enquiry: leads.filter((l) => isIsaProgramEnquiryLead(l)).length,
     };
   }, [leads]);
 
@@ -476,7 +490,7 @@ function AdminLeads() {
   return (
     <AdminShell
       title="Leads"
-      subtitle="Submissions from the public site — applications, brochure requests, and demo signups."
+      subtitle="Submissions from the public site — applications, brochure requests, demo signups, and ISA Program enquiries."
     >
       {loading ? (
         <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center">
@@ -508,6 +522,9 @@ function AdminLeads() {
                   <option value="application">Application ({counts.application})</option>
                   <option value="brochure">Brochure ({counts.brochure})</option>
                   <option value="demo">Demo ({counts.demo})</option>
+                  <option value="isa_program_enquiry">
+                    ISA Program Enquiry ({counts.isa_program_enquiry})
+                  </option>
                 </select>
 
                 <select
@@ -736,8 +753,10 @@ function AdminLeads() {
                         {new Date(l.created_at).toLocaleString()}
                       </td>
                       <td className="px-4 py-3">
-                        <span className="inline-flex rounded-full bg-brand-purple/10 px-2 py-0.5 text-xs font-medium capitalize text-brand-purple">
-                          {l.source}
+                        <span className="inline-flex rounded-full bg-brand-purple/10 px-2 py-0.5 text-xs font-medium text-brand-purple">
+                          {sourceKeyForLead(l) === "isa_program_enquiry"
+                            ? "ISA Program Enquiry"
+                            : l.source}
                         </span>
                       </td>
                       <td className="px-4 py-3 font-medium text-foreground">
@@ -921,8 +940,10 @@ function AdminLeads() {
                         </div>
                       </div>
                     </div>
-                    <span className="inline-flex shrink-0 rounded-full bg-brand-purple/10 px-2 py-0.5 text-xs font-medium capitalize text-brand-purple">
-                      {l.source}
+                    <span className="inline-flex shrink-0 rounded-full bg-brand-purple/10 px-2 py-0.5 text-xs font-medium text-brand-purple">
+                      {sourceKeyForLead(l) === "isa_program_enquiry"
+                        ? "ISA Program Enquiry"
+                        : l.source}
                     </span>
                   </div>
                   <div className="mt-3 space-y-1 text-sm">

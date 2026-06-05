@@ -19,20 +19,26 @@ const scrollToContact = () => {
   else window.location.hash = "#contact";
 };
 
-export function CtaBanner() {
+export type CtaBannerProps = {
+  /** Prefer the demo / lead modal instead of scrolling to #contact when set. */
+  onPrimaryClick?: () => void;
+};
+
+export function CtaBanner({ onPrimaryClick }: CtaBannerProps) {
   const data = useCmsSection<CtaBannerData>("cta_banner", FALLBACK);
   const image = data.image && data.image.trim() ? resolveAssetUrl(data.image) : ctaTeam;
   const [brochureOpen, setBrochureOpen] = useState(false);
 
   return (
     <section className="bg-background py-10 sm:py-12">
-      <div className="mx-auto max-w-[1320px] px-4 sm:px-6 lg:px-8">
-        <div className="relative overflow-hidden rounded-2xl bg-brand-gradient sm:rounded-3xl">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 bg-brand-grid opacity-30"
-          />
-          <div className="relative grid items-end gap-8 px-5 pt-10 sm:gap-10 sm:px-10 sm:pt-12 lg:grid-cols-2 lg:items-stretch lg:gap-0 lg:px-0 lg:pt-0">
+      {/* Full-bleed rectangle: the gradient spans the entire screen width
+          (square corners); inner content stays within the page container. */}
+      <div className="relative overflow-hidden bg-brand-gradient">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-brand-grid opacity-30"
+        />
+        <div className="relative mx-auto grid max-w-page items-end gap-8 px-5 pt-10 sm:gap-10 sm:px-10 sm:pt-12 lg:grid-cols-2 lg:items-stretch lg:gap-0 lg:px-0 lg:pt-0">
             <div className="text-white text-center lg:text-left lg:self-center lg:py-14 lg:pl-16 lg:pr-6">
               <h2 className="text-2xl font-bold leading-tight tracking-tight sm:text-3xl md:text-4xl lg:text-[44px]">
                 {data.title}
@@ -41,7 +47,9 @@ export function CtaBanner() {
               <div className="mt-7 flex w-full flex-col items-stretch gap-3 sm:mt-8 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:gap-4 lg:justify-start justify-center">
                 <button
                   type="button"
-                  onClick={scrollToContact}
+                  onClick={() =>
+                    onPrimaryClick ? onPrimaryClick() : scrollToContact()
+                  }
                   className="rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-brand-purple shadow-md transition hover:bg-white/90 sm:px-7 sm:text-base"
                 >
                   {data.primaryLabel}
@@ -69,7 +77,6 @@ export function CtaBanner() {
             </div>
           </div>
         </div>
-      </div>
       <BrochureDownloadDialog
         open={brochureOpen}
         onOpenChange={setBrochureOpen}

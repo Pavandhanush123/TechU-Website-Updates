@@ -8,7 +8,6 @@ export const CMS_SECTION_KEYS = [
   "announcement_bar",
   "site_header",
   "hero",
-  "course_search",
   "upcoming_courses",
   "mentors",
   "webinars",
@@ -22,6 +21,7 @@ export const CMS_SECTION_KEYS = [
   "seo_home",
   "seo_courses",
   "seo_course_detail",
+  "courses_catalog",
 ];
 
 const DEFAULT_SOCIALS = {
@@ -58,7 +58,6 @@ const DEFAULTS = {
   hero: {
     slides: [
       {
-        badge: "Powered by TechU",
         titleStart: "Kickstart Your Career with ",
         titleHighlight: "Job-Ready Tech Courses",
         titleEnd: "",
@@ -75,7 +74,6 @@ const DEFAULTS = {
         alt: "Two AI engineers collaborating at a workstation",
       },
       {
-        badge: "UI/UX Design",
         titleStart: "Shape Ideas Into ",
         titleHighlight: "Stunning Digital Experiences",
         titleEnd: "",
@@ -88,7 +86,6 @@ const DEFAULTS = {
         alt: "Designer crafting UI/UX layouts on a large monitor",
       },
       {
-        badge: "Data Science & AI",
         titleStart: "Unlock the ",
         titleHighlight: "Power of Data",
         titleEnd: " with AI & ML",
@@ -107,71 +104,6 @@ const DEFAULTS = {
     ],
     livePillLabel: "Live",
     livePillText: "Register for Free Demo",
-  },
-
-  course_search: {
-    courses: [
-      {
-        title: "Full Stack Development with Claude AI",
-        slug: "fullstack",
-        mode: "Online Live",
-        location: "Online",
-      },
-      {
-        title: "Full Stack Development with Claude AI",
-        slug: "fullstack",
-        mode: "Offline (Hyderabad)",
-        location: "Madhapur",
-      },
-      {
-        title: "Full Stack Development with Claude AI",
-        slug: "fullstack",
-        mode: "Coding Entrepreneur",
-        location: "Madhapur",
-      },
-      {
-        title: "Full Stack Development with Claude AI",
-        slug: "fullstack",
-        mode: "Advanced Coding Entrepreneur",
-        location: "Madhapur",
-      },
-      {
-        title: "Data Analytics with AI / ML",
-        slug: "data-analytics",
-        mode: "Online Live",
-        location: "Online",
-      },
-      {
-        title: "Data Analytics with AI / ML",
-        slug: "data-analytics",
-        mode: "Offline (Hyderabad)",
-        location: "Madhapur",
-      },
-      {
-        title: "UI/UX Designing + Digital Marketing + Graphic Designing with AI",
-        slug: "uiux",
-        mode: "Online Live",
-        location: "Online",
-      },
-      {
-        title: "UI/UX Designing + Digital Marketing + Graphic Designing with AI",
-        slug: "uiux",
-        mode: "Offline (Hyderabad)",
-        location: "Hitech City",
-      },
-      {
-        title: "UI/UX Designing + Digital Marketing + Graphic Designing with AI",
-        slug: "uiux",
-        mode: "Digital Entrepreneur",
-        location: "Hitech City",
-      },
-      {
-        title: "UI/UX Designing + Digital Marketing + Graphic Designing with AI",
-        slug: "uiux",
-        mode: "Advanced Digital Entrepreneur",
-        location: "Hitech City",
-      },
-    ],
   },
 
   upcoming_courses: {
@@ -245,54 +177,23 @@ const DEFAULTS = {
         upcoming: false,
         batchNote: "",
       },
-      {
-        title: "Full Stack Development",
-        image: "",
-        rating: 4.8,
-        students: "5,210",
-        duration: "Self-paced",
-        level: "Beginner",
-        mode: "Recorded",
-        upcoming: false,
-        batchNote: "",
-      },
-      {
-        title: "Data Analytics with AI / ML",
-        image: "",
-        rating: 4.7,
-        students: "2,140",
-        duration: "Self-paced",
-        level: "Beginner",
-        mode: "Recorded",
-        upcoming: false,
-        batchNote: "",
-      },
-      {
-        title: "UI/UX Design",
-        image: "",
-        rating: 4.8,
-        students: "1,890",
-        duration: "Self-paced",
-        level: "Beginner",
-        mode: "Recorded",
-        upcoming: false,
-        batchNote: "",
-      },
     ],
   },
 
   mentors: {
+    enabled: false,
     title: "Learn from Industry Experts",
     subtitle:
       "Our mentors are working professionals from top tech companies with 10+ years of experience",
     items: [
       {
         name: "Vishal",
-        role: "Full Stack Trainer",
+        role: "MERN STACK developer + trainer",
         expertise:
           "End-to-end web development · Live mentorship · Industry-aligned projects",
         years: "Expert Mentor",
         image: "",
+        track: "MERN Stack",
       },
       {
         name: "Tirupathi Rao",
@@ -301,6 +202,7 @@ const DEFAULTS = {
           "Modern stacks · Backend & frontend fundamentals · Hands-on labs",
         years: "Expert Mentor",
         image: "",
+        track: "Full Stack",
       },
       {
         name: "Sai Krishna Jeedipalli",
@@ -308,13 +210,16 @@ const DEFAULTS = {
         expertise: "Figma, UX research, product design",
         years: "Expert Mentor",
         image: "",
+        track: "UI/UX",
       },
       {
-        name: "PAVAN Kumar",
+        name: "Pavan Kumar",
         role: "Data Analytics & AI/ML Trainer",
-        expertise: "ML, DL, computer vision",
+        expertise:
+          "Machine learning, deep learning, computer vision, and analytics pipelines",
         years: "2 years · ML Engineer",
         image: "",
+        track: "Data & AI/ML",
       },
     ],
   },
@@ -360,7 +265,7 @@ const DEFAULTS = {
     titleLine2: "Real Infrastructure",
     subtitle:
       "Hand-picked courses designed by industry experts to help you land your dream tech job",
-    body: "Step into TechU — Hyderabad's premium AI and full-stack training institute — built with industry-grade classrooms, collaborative learning spaces, and real-time mentorship environments designed to simulate the modern workplace.",
+    body: "",
     image: "",
     stats: [
       { label: "Graduate Placed", value: "500", suffix: "+" },
@@ -390,6 +295,7 @@ const DEFAULTS = {
         quote:
           "TechU offers the perfect mix of online and offline learning. The courses are well-structured, and the trainers are highly knowledgeable.",
         avatar: "",
+        lpa: "",
       },
       {
         name: "Akhil",
@@ -399,6 +305,7 @@ const DEFAULTS = {
         quote:
           "Learning at TechU was a game-changer for me. The hands-on projects and supportive trainers made all the difference!",
         avatar: "",
+        lpa: "",
       },
       {
         name: "Anusha",
@@ -408,6 +315,7 @@ const DEFAULTS = {
         quote:
           "TechU's courses are truly amazing! The expert trainers and practical approach helped me excel in my field. Highly recommend!",
         avatar: "",
+        lpa: "",
       },
       {
         name: "Priya",
@@ -417,6 +325,7 @@ const DEFAULTS = {
         quote:
           "The Full Stack program gave me real project exposure. I built end-to-end apps with React and Node confidently.",
         avatar: "",
+        lpa: "9 LPA",
       },
       {
         name: "Karthik",
@@ -426,6 +335,7 @@ const DEFAULTS = {
         quote:
           "Python, ML and SQL all explained from scratch with real datasets. The mentor support was outstanding.",
         avatar: "",
+        lpa: "12 LPA",
       },
       {
         name: "Sandhya",
@@ -435,6 +345,7 @@ const DEFAULTS = {
         quote:
           "Figma, Adobe XD and live design critiques helped me build a portfolio I'm genuinely proud of.",
         avatar: "",
+        lpa: "",
       },
     ],
   },
@@ -463,20 +374,16 @@ const DEFAULTS = {
   },
 
   final_cta: {
-    eyebrow: "Admissions Open · 2026 Batch",
     titleStart: "Ready to Start Your ",
     titleHighlight: "Tech Journey?",
     titleEnd: "",
     description:
-      "Join thousands of learners who have transformed their careers with TechU. Limited seats available for the upcoming 2026 batch.",
+      "Join thousands of students who have transformed their careers. Limited seats available for the 2026 batch.",
     primaryLabel: "Enroll Now — Limited Seats",
     primaryHref: "#contact",
-    secondaryLabel: "Talk to a Mentor",
-    secondaryHref: "#contact",
     badges: [
       "EMI options available",
       "Money-back guarantee",
-      "Next batch starting soon",
     ],
   },
 
@@ -484,11 +391,6 @@ const DEFAULTS = {
     logoUrl: "",
     description:
       "Step confidently toward your personal and professional goals with TechU — your reliable guide to mastering in-demand tech skills with offline & online training.",
-    bullets: [
-      "500+ Learner Reviews",
-      "4.95 Average Rating",
-      "100% Satisfied Students",
-    ],
     coursesLinks: [
       {
         label: "Full Stack Development",
@@ -512,7 +414,6 @@ const DEFAULTS = {
       { label: "Success Stories", href: "/#stories" },
       { label: "Blog", href: "/blog" },
       { label: "Webinars", href: "/#webinars" },
-      { label: "Contact", href: "/#contact" },
     ],
     email: "info@techu.in",
     phone: "+91 90001 44281",
@@ -560,6 +461,55 @@ const DEFAULTS = {
     description: "Detailed curriculum, mentors, projects, and outcomes.",
     canonical: "",
     ogImage: "",
+  },
+
+  // Admin-managed courses. Each entry below the built-in static courses
+  // (Full Stack, Data Analytics, UI/UX) gets its own auto-generated detail
+  // page at /course-detail?course=<slug>, built from these core fields merged
+  // over shared section defaults. Set `published: true` to show it on the site.
+  // The first entry is an unpublished template — clone it with "Add", edit, publish.
+  courses_catalog: {
+    courses: [
+      {
+        published: false,
+        slug: "example-course",
+        title: "Example Course (template — unpublished)",
+        category: "Development",
+        badge: "Enrollment Open",
+        tagline: "Short one-line tagline shown under the title",
+        description:
+          "A 1–2 sentence summary of the course shown in the hero and listings.",
+        metaTitle: "Example Course — TechU",
+        metaDescription:
+          "SEO description for this course page (defaults to the description if left blank).",
+        heroImage: "",
+        brochureUrl: "",
+        duration: "4 Months",
+        rating: 4.8,
+        students: "1,000",
+        modes: ["Online", "Offline"],
+        pricingTiers: [
+          {
+            id: "online",
+            label: "Online Live",
+            price: "₹65,000",
+            originalPrice: "₹90,000",
+            saveLabel: "Save ₹25,000 - Limited Time",
+            emi: "Or ₹5,417/month with 0% EMI",
+            subtitle: "Live classes + mentorship",
+          },
+          {
+            id: "offline",
+            label: "Offline (Hyderabad)",
+            price: "₹88,600",
+            originalPrice: "₹1,20,000",
+            saveLabel: "Save ₹31,400 - Limited Time",
+            emi: "Or ₹7,383/month with 0% EMI",
+            subtitle: "In-person learning",
+          },
+        ],
+      },
+    ],
   },
 };
 

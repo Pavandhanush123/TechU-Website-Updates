@@ -13,7 +13,7 @@ export function WhoItsFor() {
         backgroundSize: "32px 32px",
       }}
     >
-      <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-page px-4 sm:px-6 lg:px-8">
         <div className="text-center">
           <span className="text-xs font-bold uppercase tracking-[0.2em] text-brand-purple">
             Who it's for

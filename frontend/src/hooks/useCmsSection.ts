@@ -64,6 +64,7 @@ export function useCmsSection<T>(key: CmsSectionKey, fallback: T): T {
       inflight.delete(key);
       if (cancelled) return;
       if (value !== undefined) setData(value as T);
+      else setData(fallback);
     });
     return () => {
       cancelled = true;

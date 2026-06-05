@@ -53,6 +53,22 @@ import {
 } from "@/components/ui/dropdown-menu";
 import techuLogo from "@/assets/techu-logo.png";
 
+const TEXTS = {
+  loading: "Loading…",
+  accessPending: "Access pending",
+  yourAccount: "Your account (",
+  noAdminAccess: ") is signed in but doesn't have admin access yet. Ask the site owner to grant you the admin role.",
+  signOut: "Sign out",
+  techUAdmin: "TechU Admin",
+  publicSite: "Public site",
+  administrator: "Administrator",
+  signedInAs: "Signed in as",
+  searchJumpTo: "Search or jump to…",
+  changePassword: "Change password",
+  changePasswordDesc: "Use a password of at least 8 characters.",
+  cancel: "Cancel",
+};
+
 type NavItem = {
   to: string;
   label: string;
@@ -80,6 +96,12 @@ const NAV_GROUPS: NavGroup[] = [
         label: "Leads",
         Icon: Users,
         match: (p) => p.startsWith("/admin/leads"),
+      },
+      {
+        to: "/admin/isa-leads",
+        label: "ISA Enquiry",
+        Icon: Users,
+        match: (p) => p.startsWith("/admin/isa-leads"),
       },
     ],
   },
@@ -202,7 +224,7 @@ export function AdminShell({ title, subtitle, actions, children }: Props) {
   if (auth.status === "checking") {
     return (
       <main className="flex min-h-screen items-center justify-center bg-muted/30">
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <p className="text-sm text-muted-foreground">{TEXTS.loading}</p>
       </main>
     );
   }
@@ -216,17 +238,16 @@ export function AdminShell({ title, subtitle, actions, children }: Props) {
       <main className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
         <div className="max-w-md rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
           <h2 className="text-lg font-semibold text-foreground">
-            Access pending
+            {TEXTS.accessPending}
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Your account ({auth.email}) is signed in but doesn't have admin
-            access yet. Ask the site owner to grant you the admin role.
+            {TEXTS.yourAccount}{auth.email}{TEXTS.noAdminAccess}
           </p>
           <button
             onClick={handleSignOut}
             className="mt-4 rounded-lg border border-border px-4 py-2 text-xs font-medium hover:bg-muted"
           >
-            Sign out
+            {TEXTS.signOut}
           </button>
         </div>
       </main>
@@ -254,7 +275,7 @@ export function AdminShell({ title, subtitle, actions, children }: Props) {
 
         <main
           key={title}
-          className="animate-page-in mx-auto max-w-[1280px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
+          className="animate-page-in mx-auto max-w-page px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
         >
           {children}
         </main>
@@ -301,7 +322,7 @@ function Sidebar({
         </div>
         <div className="min-w-0">
           <div className="truncate text-sm font-bold tracking-tight text-foreground">
-            TechU Admin
+            {TEXTS.techUAdmin}
           </div>
           <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
@@ -361,7 +382,7 @@ function Sidebar({
             className="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground/75 transition hover:bg-muted hover:text-foreground"
           >
             <ExternalLink className="h-4 w-4 text-muted-foreground transition group-hover:text-foreground" />
-            <span className="flex-1">Public site</span>
+            <span className="flex-1">{TEXTS.publicSite}</span>
             <span className="text-[10px] text-muted-foreground/60">↗</span>
           </a>
         </div>
@@ -383,7 +404,7 @@ function Sidebar({
                   {email ?? "Admin"}
                 </div>
                 <div className="text-[10px] text-muted-foreground">
-                  Administrator
+                  {TEXTS.administrator}
                 </div>
               </div>
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
@@ -391,7 +412,7 @@ function Sidebar({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-60">
             <DropdownMenuLabel className="truncate text-xs">
-              Signed in as
+              {TEXTS.signedInAs}
               <div className="truncate font-medium text-foreground">
                 {email ?? "—"}
               </div>
@@ -470,7 +491,7 @@ function TopBar({
 
   return (
     <header className="fixed left-0 right-0 top-0 z-30 border-b border-border bg-card/85 backdrop-blur supports-[backdrop-filter]:bg-card/70 md:left-64">
-      <div className="mx-auto flex max-w-[1280px] items-center gap-3 px-4 py-3 sm:px-6 sm:py-3.5 lg:px-8">
+      <div className="mx-auto flex max-w-page items-center gap-3 px-4 py-3 sm:px-6 sm:py-3.5 lg:px-8">
         <button
           onClick={onOpenDrawer}
           aria-label="Open menu"
@@ -497,7 +518,7 @@ function TopBar({
         >
           <span className="flex items-center gap-2">
             <Search className="h-3.5 w-3.5" />
-            <span>Search or jump to…</span>
+            <span>{TEXTS.searchJumpTo}</span>
           </span>
           <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground/80">
             {isMac ? "⌘K" : "Ctrl K"}
@@ -586,9 +607,9 @@ function ChangePasswordDialog({
     >
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Change password</DialogTitle>
+          <DialogTitle>{TEXTS.changePassword}</DialogTitle>
           <DialogDescription>
-            Use a password of at least 8 characters.
+            {TEXTS.changePasswordDesc}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="mt-2 space-y-3">
@@ -620,7 +641,7 @@ function ChangePasswordDialog({
               onClick={() => onOpenChange(false)}
               className="rounded-lg border border-border px-3 py-2 text-xs font-medium hover:bg-muted"
             >
-              Cancel
+              {TEXTS.cancel}
             </button>
             <button
               type="submit"

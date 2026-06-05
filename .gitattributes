@@ -1,0 +1,2 @@
+video/TECHU[[:space:]]OVERVIEW[[:space:]]VIDEO.MOV filter=lfs diff=lfs merge=lfs -text
+video/Techu[[:space:]].mp4 filter=lfs diff=lfs merge=lfs -text

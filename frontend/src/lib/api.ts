@@ -8,8 +8,26 @@ const RAW_BASE = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ?? "";
 const ALLOW_DEV_CROSS_ORIGIN_API =
   import.meta.env.VITE_ALLOW_CROSS_ORIGIN_API_IN_DEV === "true";
 
+function isPrivateLanIPv4(hostname: string): boolean {
+  const m = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(hostname);
+  if (!m) return false;
+  const oct = [Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4])];
+  if (oct.some((x) => !Number.isInteger(x) || x < 0 || x > 255)) return false;
+  const [a, b] = oct;
+  if (a === 10) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  return false;
+}
+
+/** True when the SPA is loaded from typical local dev origins (localhost or LAN IP). */
 function isLocalDevHost(hostname: string) {
-  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "[::1]" ||
+    isPrivateLanIPv4(hostname)
+  );
 }
 
 function resolveApiBase(): string {
@@ -108,14 +126,24 @@ export type ApplicationInput = {
   fullName: string;
   email: string;
   phone: string;
-  experience: string;
+  // Optional: the course "Apply" form no longer collects this. The homepage
+  // Hire-Talent (ContactSection) form still sends total work experience here.
+  experience?: string;
   course: string;
+  learningMode?: string;
 };
 export type BrochureRequestInput = {
   fullName: string;
   email: string;
   phone: string;
   course: string;
+};
+export type IsaProgramEnquiryInput = {
+  fullName: string;
+  email: string;
+  phone: string;
+  course: string;
+  preferredMode: "Online" | "Offline";
 };
 
 export const submitDemoRequest = (data: DemoRequestInput) =>
@@ -132,6 +160,12 @@ export const submitApplication = (data: ApplicationInput) =>
 
 export const submitBrochureRequest = (data: BrochureRequestInput) =>
   apiFetch<Record<string, never>>("/api/leads/brochure", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+export const submitIsaProgramEnquiry = (data: IsaProgramEnquiryInput) =>
+  apiFetch<Record<string, never>>("/api/leads/isa-program-enquiry", {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -237,6 +271,54 @@ export const bulkDeleteLeads = (ids: string[]) =>
     body: JSON.stringify({ ids }),
   });
 
+export type IsaLead = {
+  id: string;
+  created_at: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  course: string;
+  preferred_mode: string;
+  status: LeadStatus;
+  notes: string | null;
+  updated_at: string;
+};
+
+export const listIsaLeads = () =>
+  apiFetch<{ leads: IsaLead[] }>("/api/admin/isa-leads");
+
+export const getIsaLeadStats = () =>
+  apiFetch<LeadStats>("/api/admin/isa-stats");
+
+export const updateIsaLeadStatus = (id: string, status: LeadStatus) =>
+  apiFetch<Record<string, never>>(`/api/admin/isa-leads/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+
+export const deleteIsaLead = (id: string) =>
+  apiFetch<Record<string, never>>(`/api/admin/isa-leads/${id}`, {
+    method: "DELETE",
+  });
+
+export const updateIsaLeadNotes = (id: string, notes: string | null) =>
+  apiFetch<Record<string, never>>(`/api/admin/isa-leads/${id}/notes`, {
+    method: "PATCH",
+    body: JSON.stringify({ notes }),
+  });
+
+export const bulkUpdateIsaStatus = (ids: string[], status: LeadStatus) =>
+  apiFetch<{ updated: number }>("/api/admin/isa-leads/bulk-status", {
+    method: "POST",
+    body: JSON.stringify({ ids, status }),
+  });
+
+export const bulkDeleteIsaLeads = (ids: string[]) =>
+  apiFetch<{ deleted: number }>("/api/admin/isa-leads/bulk-delete", {
+    method: "POST",
+    body: JSON.stringify({ ids }),
+  });
+
 // ──────────────────────────────────────────────────────────────────────────
 // CMS — site_content sections
 // ──────────────────────────────────────────────────────────────────────────
@@ -245,7 +327,6 @@ export type CmsSectionKey =
   | "announcement_bar"
   | "site_header"
   | "hero"
-  | "course_search"
   | "upcoming_courses"
   | "mentors"
   | "webinars"
@@ -258,7 +339,8 @@ export type CmsSectionKey =
   | "welcome_popup"
   | "seo_home"
   | "seo_courses"
-  | "seo_course_detail";
+  | "seo_course_detail"
+  | "courses_catalog";
 
 export type CmsSection<T = unknown> = {
   key: CmsSectionKey;
@@ -323,6 +405,11 @@ export const updateAdminSection = <T = unknown>(
 // ── Section data shapes ──────────────────────────────────────────────────
 
 export type MentorsSectionData = {
+  /**
+   * When true, the mentors block and header/footer links to `#mentors` render.
+   * Omitted/false hides the homepage section (offline roster data can remain in CMS).
+   */
+  enabled?: boolean;
   title: string;
   subtitle: string;
   items: Array<{
@@ -331,8 +418,24 @@ export type MentorsSectionData = {
     expertise: string;
     years: string;
     image: string;
+    /** Homepage badge (e.g. Full Stack, UI/UX). Editable in admin. */
+    track?: string;
   }>;
 };
+
+/** Fallback for hooks that only need `enabled` before the mentors CMS row resolves. */
+export const MENTORS_SECTION_DISABLED_FALLBACK: MentorsSectionData = {
+  enabled: false,
+  title: "",
+  subtitle: "",
+  items: [],
+};
+
+export function isMentorsSectionPublished(
+  data: Pick<MentorsSectionData, "enabled"> | null | undefined,
+): boolean {
+  return data?.enabled === true;
+}
 
 export type TestimonialsSectionData = {
   title: string;
@@ -344,6 +447,8 @@ export type TestimonialsSectionData = {
     rating: string;
     quote: string;
     avatar: string;
+    /** Optional placement package, e.g. "12 LPA". Shown as a highlighted badge. */
+    lpa?: string;
   }>;
 };
 
@@ -371,7 +476,8 @@ export type SiteHeaderData = {
 };
 
 export type HeroSlide = {
-  badge: string;
+  /** @deprecated Hero carousel pills removed; value ignored on save/site. */
+  badge?: string;
   titleStart: string;
   titleHighlight: string;
   titleEnd: string;
@@ -389,18 +495,6 @@ export type HeroData = {
   livePillText: string;
 };
 
-/** Homepage search bar rows — aligned with course catalog pricing tiers (no schedule field). */
-export type CourseSearchCourseRow = {
-  title: string;
-  slug: string;
-  mode: string;
-  location: string;
-};
-
-export type CourseSearchData = {
-  courses: CourseSearchCourseRow[];
-};
-
 export type UpcomingCoursesData = {
   title: string;
   subtitle: string;
@@ -411,11 +505,53 @@ export type UpcomingCoursesData = {
     students: string;
     duration: string;
     level: string;
-    mode: "Offline" | "Online" | "Recorded";
+    mode: "Offline" | "Online";
     upcoming?: boolean;
     batchNote?: string;
   }>;
 };
+
+// Admin-managed courses (CMS section "courses_catalog"). Core fields only —
+// the rest of each detail page renders from shared defaults.
+export type CatalogPricingTier = {
+  id: string;
+  label: string;
+  price: string;
+  originalPrice?: string;
+  saveLabel?: string;
+  emi?: string;
+  subtitle?: string;
+  internship?: string;
+};
+
+export type CatalogCourse = {
+  published?: boolean;
+  slug: string;
+  title: string;
+  category?: string;
+  badge?: string;
+  tagline?: string;
+  description?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  heroImage?: string;
+  brochureUrl?: string;
+  duration?: string;
+  rating?: number;
+  students?: string;
+  modes?: string[];
+  /** Next advertised batch start (ISO date, e.g. 2026-07-01). Shown in the courses list view and powers the start-date filter. */
+  batchDate?: string;
+  /** Short batch label shown on the course card, e.g. "Next Batch Starting Soon". */
+  batchNote?: string;
+  pricingTiers?: CatalogPricingTier[];
+};
+
+export type CoursesCatalogData = {
+  courses: CatalogCourse[];
+};
+
+export const COURSES_CATALOG_FALLBACK: CoursesCatalogData = { courses: [] };
 
 export type WebinarsData = {
   title: string;
@@ -465,22 +601,20 @@ export type ContactData = {
 };
 
 export type FinalCtaData = {
-  eyebrow: string;
   titleStart: string;
   titleHighlight: string;
   titleEnd: string;
   description: string;
   primaryLabel: string;
   primaryHref: string;
-  secondaryLabel: string;
-  secondaryHref: string;
   badges: string[];
 };
 
 export type SiteFooterData = {
   logoUrl: string;
   description: string;
-  bullets: string[];
+  /** @deprecated No longer shown in the footer; kept for CMS/back-compat. */
+  bullets?: string[];
   coursesLinks: Array<{
     label: string;
     to: string;

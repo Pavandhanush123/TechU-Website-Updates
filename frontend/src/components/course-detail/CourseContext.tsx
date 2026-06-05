@@ -5,12 +5,15 @@ const CourseCtx = createContext<CourseContent>(getCourse(undefined));
 
 export function CourseProvider({
   slug,
+  content,
   children,
 }: {
   slug?: string;
+  /** Pre-resolved content (e.g. an admin-created catalog course). Overrides slug lookup. */
+  content?: CourseContent;
   children: ReactNode;
 }) {
-  const course = getCourse(slug);
+  const course = content ?? getCourse(slug);
   return <CourseCtx.Provider value={course}>{children}</CourseCtx.Provider>;
 }
 

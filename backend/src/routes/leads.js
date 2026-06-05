@@ -2,17 +2,18 @@ import { Router } from "express";
 // OLD: import { pool, newId } from "../db.js";
 import { newId } from "../db.js";
 import { prisma } from "../prisma.js";
+import { normalizeIndianApplicationPhoneCanonical } from "../util/indianPhone.js";
 import {
   applicationSchema,
   brochureRequestSchema,
   demoRequestSchema,
+  isaProgramEnquirySchema,
 } from "../schemas/index.js";
 import { rateLimit, clientIp } from "../rate-limit.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import { validate } from "../middleware/validate.js";
 
 const router = Router();
-const EXPERIENCE_YEARS_MONTHS_REGEX = /^(\d{1,2})\s+years?\s+(\d{1,2})\s+months?$/i;
 
 // ────────────────────────────────────────────────────────────────────────────
 // OLD: Raw SQL insert used by all three endpoints (commented out for comparison)
@@ -44,12 +45,16 @@ router.post("/demo", validate(demoRequestSchema), asyncHandler(async (req, res) 
     });
   }
 
+  const phone =
+    normalizeIndianApplicationPhoneCanonical(req.body.phone) ??
+    req.body.phone;
+
   await prisma.demoRequest.create({
     data: {
       id: newId(),
       fullName: req.body.fullName,
       email: req.body.email,
-      phone: req.body.phone,
+      phone,
       course: req.body.course,
       preferredDate: null,
       source: "demo",
@@ -82,16 +87,16 @@ router.post("/application", validate(applicationSchema), asyncHandler(async (req
     });
   }
 
-  const phone = req.body.phone.startsWith("+")
-    ? req.body.phone
-    : `+91${req.body.phone}`;
+  const phone =
+    normalizeIndianApplicationPhoneCanonical(req.body.phone) ??
+    req.body.phone;
   const candidateProfile = String(req.body.experience ?? "").trim();
-  let profileLabel = `${candidateProfile} yrs experience`;
-  if (/^\d{4}$/.test(candidateProfile)) {
-    profileLabel = `Passout Year: ${candidateProfile}`;
-  } else if (EXPERIENCE_YEARS_MONTHS_REGEX.test(candidateProfile)) {
-    profileLabel = `Experience: ${candidateProfile}`;
-  }
+  const baseCourse = req.body.learningMode
+    ? `${req.body.course} (${req.body.learningMode})`
+    : req.body.course;
+  const courseValue = candidateProfile
+    ? `${baseCourse} — Experience: ${candidateProfile}`
+    : baseCourse;
 
   await prisma.demoRequest.create({
     data: {
@@ -99,9 +104,7 @@ router.post("/application", validate(applicationSchema), asyncHandler(async (req
       fullName: req.body.fullName,
       email: req.body.email,
       phone,
-      course: req.body.learningMode 
-        ? `${req.body.course} (${req.body.learningMode}) — ${profileLabel}`
-        : `${req.body.course} — ${profileLabel}`,
+      course: courseValue,
       preferredDate: null,
       source: "application",
     },
@@ -133,9 +136,9 @@ router.post("/brochure", validate(brochureRequestSchema), asyncHandler(async (re
     });
   }
 
-  const phone = req.body.phone.startsWith("+")
-    ? req.body.phone
-    : `+91${req.body.phone}`;
+  const phone =
+    normalizeIndianApplicationPhoneCanonical(req.body.phone) ??
+    req.body.phone;
 
   try {
     await prisma.demoRequest.create({
@@ -169,6 +172,31 @@ router.post("/brochure", validate(brochureRequestSchema), asyncHandler(async (re
     }
     throw err;
   }
+}));
+
+router.post("/isa-program-enquiry", validate(isaProgramEnquirySchema), asyncHandler(async (req, res) => {
+  if (!rateLimit("isa-program-enquiry", clientIp(req))) {
+    return res.status(429).json({
+      ok: false,
+      error: "Too many requests. Please try again in a minute.",
+    });
+  }
+
+  const phone =
+    normalizeIndianApplicationPhoneCanonical(req.body.phone) ??
+    req.body.phone;
+
+  await prisma.isaLead.create({
+    data: {
+      id: newId(),
+      fullName: req.body.fullName,
+      email: req.body.email,
+      phone,
+      course: req.body.course,
+      preferredMode: req.body.preferredMode,
+    },
+  });
+  res.json({ ok: true });
 }));
 
 export default router;

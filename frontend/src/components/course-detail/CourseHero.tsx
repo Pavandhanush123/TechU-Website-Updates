@@ -10,11 +10,6 @@ import {
   Clock,
   Calendar,
   BookOpen,
-  Sparkles,
-  TrendingUp,
-  Eye,
-  Flame,
-  Zap,
 } from "lucide-react";
 import { useCourse, useCourseName } from "./CourseContext";
 import { BrochureDownloadDialog } from "./BrochureDownloadDialog";
@@ -55,13 +50,10 @@ export function CourseHero() {
   const [applyLabel, setApplyLabel] = useState("Submit Application");
   const [selectedMode, setSelectedMode] = useState(0);
   const [selectedBatch, setSelectedBatch] = useState(0);
-  const [liveSeatsLeft, setLiveSeatsLeft] = useState(20);
-  const [liveViewers, setLiveViewers] = useState(17);
   const batchScrollerRef = useRef<HTMLDivElement>(null);
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
   const selectedTier = course.pricingTiers[selectedMode] || course.pricingTiers[0];
-  const projectHighlights = course.projects.slice(0, 2).map((project) => project.title);
 
   const syncBatchNavigationState = useCallback(() => {
     const container = batchScrollerRef.current;
@@ -85,29 +77,6 @@ export function CourseHero() {
         : Math.max(container.scrollLeft - step, 0);
 
     container.scrollTo({ left: nextScrollLeft, behavior: "smooth" });
-  }, []);
-
-  useEffect(() => {
-    if (liveSeatsLeft <= 6) return;
-    const timeoutMs = 14_000 + Math.floor(Math.random() * 12_000);
-    const timeout = window.setTimeout(() => {
-      setLiveSeatsLeft((prev) => {
-        if (prev <= 6) return prev;
-        const decrement = Math.random() < 0.7 ? 1 : 2;
-        return Math.max(6, prev - decrement);
-      });
-    }, timeoutMs);
-    return () => window.clearTimeout(timeout);
-  }, [liveSeatsLeft]);
-
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      setLiveViewers((prev) => {
-        const next = prev + (Math.random() < 0.5 ? -1 : 1) * (Math.random() < 0.7 ? 1 : 2);
-        return Math.max(9, Math.min(34, next));
-      });
-    }, 9000);
-    return () => window.clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -136,17 +105,7 @@ export function CourseHero() {
   return (
     <>
       <section className="relative overflow-hidden bg-background pt-8 pb-10 sm:pt-12 sm:pb-14 lg:pt-14 lg:pb-14">
-        {/* Background image: strictly right half, no text overlap */}
-        <div className="pointer-events-none absolute bottom-16 right-0 top-16 z-0 hidden w-[46%] overflow-hidden rounded-l-[4rem] shadow-inner lg:block">
-          <img
-            src={course.backgroundImage}
-            alt=""
-            aria-hidden="true"
-            className="h-full w-full scale-105 object-cover blur-[2px]"
-          />
-          <div className="absolute inset-0 bg-gradient-to-l from-brand-purple/35 via-black/15 to-transparent" />
-        </div>
-        <div className="relative z-10 mx-auto grid max-w-[1280px] gap-10 px-4 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 lg:px-8">
+        <div className="relative z-10 mx-auto grid max-w-page gap-10 px-4 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 lg:px-8">
           {/* Left: Title + features */}
           <div className="flex h-full flex-col">
             <span className="inline-flex items-center gap-2 rounded-full border border-brand-purple/40 px-3 py-1 text-xs font-medium text-brand-purple">
@@ -194,8 +153,8 @@ export function CourseHero() {
                 <span className="font-medium">4.8/5</span>
               </span>
             </div>
-            <div className="mt-6 w-full max-w-xl self-start rounded-2xl bg-white/60 p-2 shadow-sm backdrop-blur-sm">
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="mt-6 w-full max-w-xl self-start">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <button
                   type="button"
                   onClick={() => openApply("Register Now")}
@@ -215,26 +174,10 @@ export function CourseHero() {
                 </button>
               </div>
             </div>
-            <LiveSeatsWidget
-              seatsLeft={liveSeatsLeft}
-              viewers={liveViewers}
-              onReserveSeat={() => openApply("Reserve my seat")}
-            />
           </div>
 
           <div className="relative flex flex-col lg:justify-start">
-            {/* Mobile/Tablet background: matches widget height, doesn't overlap left text */}
-            <div className="pointer-events-none absolute -bottom-1 -top-1 left-0 right-[-50vw] z-0 overflow-hidden rounded-l-[2rem] shadow-xl lg:hidden">
-              <img
-                src={course.backgroundImage}
-                alt=""
-                aria-hidden="true"
-                className="h-full w-full scale-105 object-cover blur-[2px]"
-              />
-              <div className="absolute inset-0 bg-gradient-to-l from-brand-purple/35 via-black/15 to-transparent" />
-            </div>
-
-            <div className="relative z-10 mx-auto w-full max-w-[25rem] rounded-2xl border-2 border-brand-purple/50 bg-white/92 p-3.5 shadow-[0_20px_60px_-20px_rgba(124,58,237,0.3)] ring-4 ring-brand-purple/5 backdrop-blur-md sm:rounded-3xl sm:p-5 lg:ml-auto lg:mr-0">
+            <div className="relative z-10 mx-auto w-full max-w-[25rem] rounded-2xl border-2 border-brand-purple/50 bg-white p-3.5 shadow-[0_20px_60px_-20px_rgba(124,58,237,0.3)] ring-4 ring-brand-purple/5 sm:rounded-3xl sm:p-5 lg:ml-auto lg:mr-0">
               <div className="flex items-baseline gap-3">
                 <span className="text-[1.7rem] font-extrabold text-foreground sm:text-3xl">
                   {selectedTier.price}
@@ -247,22 +190,6 @@ export function CourseHero() {
                 {selectedTier.saveLabel}
               </span>
               <p className="mt-2 text-xs text-muted-foreground sm:text-sm">{selectedTier.emi}</p>
-              <div className="mt-3 rounded-xl border border-brand-purple/20 bg-gradient-to-r from-brand-purple/10 to-brand-teal/10 p-2.5">
-                <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-brand-purple">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Projects you'll build
-                </div>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {projectHighlights.map((project) => (
-                    <span
-                      key={project}
-                      className="rounded-full border border-brand-purple/25 bg-white/80 px-2 py-0.5 text-[10px] font-semibold text-foreground"
-                    >
-                      {project}
-                    </span>
-                  ))}
-                </div>
-              </div>
 
               <h3 className="mt-4 text-sm font-semibold text-foreground">
                 {course.batchHeading}
@@ -445,137 +372,6 @@ export function CourseHero() {
   );
 }
 
-function LiveSeatsWidget({
-  seatsLeft,
-  viewers,
-  onReserveSeat,
-}: {
-  seatsLeft: number;
-  viewers: number;
-  onReserveSeat: () => void;
-}) {
-  const totalSeats = 20;
-  const seatsFilled = totalSeats - seatsLeft;
-  const filledPercent = Math.max(0, Math.min(100, (seatsFilled / totalSeats) * 100));
-  const filledPercentRounded = Math.round(filledPercent);
-  const seatsJoinedToday = Math.max(2, Math.min(11, seatsFilled + 2));
-  const seatSegments = 10;
-  const filledSegments = Math.round((filledPercent / 100) * seatSegments);
-
-  return (
-    <div className="relative mt-10 w-full max-w-xl self-start overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-[0_2px_24px_-12px_rgba(15,23,42,0.12)] ring-1 ring-black/[0.03] lg:mt-4">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-orange/45 to-transparent"
-      />
-      <div className="relative border-b border-border/80 bg-muted/25 px-4 py-3 sm:px-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="inline-flex items-center gap-2 text-[13px] font-semibold tracking-tight text-foreground">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-orange/40 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-orange" />
-            </span>
-            High demand this week
-          </p>
-          <span className="inline-flex items-center gap-1 rounded-full bg-brand-orange/[0.09] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-brand-orange ring-1 ring-brand-orange/15">
-            <Flame className="h-3 w-3 shrink-0" strokeWidth={2.25} />
-            Fast filling
-          </span>
-        </div>
-      </div>
-
-      <div className="relative space-y-5 p-4 sm:p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Remaining seats
-            </p>
-            <p className="mt-1 text-[1.65rem] font-bold leading-none tracking-tight text-foreground sm:text-[1.85rem]">
-              <span className="tabular-nums">{seatsLeft}</span>
-              <span className="ml-2 text-[1rem] font-semibold tracking-tight text-muted-foreground">
-                seats left
-              </span>
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-col items-end gap-1">
-            <span className="rounded-lg bg-brand-purple/[0.08] px-2.5 py-1 text-[11px] font-semibold tabular-nums text-brand-purple ring-1 ring-brand-purple/15">
-              {filledPercentRounded}% batch filled
-            </span>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <div className="relative h-2 overflow-hidden rounded-full bg-muted">
-            <div
-              className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-brand-purple via-brand-purple to-brand-orange shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] transition-[width] duration-700 ease-out"
-              style={{ width: `${filledPercent}%` }}
-            />
-          </div>
-          <div className="flex gap-1">
-            {Array.from({ length: seatSegments }).map((_, index) => (
-              <div
-                key={index}
-                className={[
-                  "h-1 flex-1 rounded-[2px] transition-colors duration-300",
-                  index < filledSegments ? "bg-brand-orange" : "bg-muted",
-                ].join(" ")}
-              />
-            ))}
-          </div>
-          <p className="text-xs leading-snug text-muted-foreground">
-            <span className="font-semibold tabular-nums text-foreground">
-              {seatsFilled}/{totalSeats}
-            </span>{" "}
-            seats already reserved
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-2 rounded-xl border border-border/70 bg-muted/15 px-3 py-3">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-purple/10 text-brand-purple">
-              <Eye className="h-4 w-4" strokeWidth={2} />
-            </span>
-            <p className="text-[13px] font-semibold leading-tight text-foreground">
-              <span className="tabular-nums">{viewers}</span> viewing now
-            </p>
-          </div>
-          <div className="flex flex-col gap-2 rounded-xl border border-border/70 bg-muted/15 px-3 py-3">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-teal/10 text-brand-teal">
-              <TrendingUp className="h-4 w-4" strokeWidth={2} />
-            </span>
-            <p className="text-[13px] font-semibold leading-tight text-foreground">
-              <span className="tabular-nums">{seatsJoinedToday}</span> joined today
-            </p>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={onReserveSeat}
-          className="group relative flex w-full flex-col gap-0.5 overflow-hidden rounded-xl bg-brand-orange px-4 py-3.5 text-left text-white shadow-[0_14px_36px_-18px_rgba(249,115,22,0.85)] ring-1 ring-black/5 transition hover:brightness-[1.03] active:scale-[0.99]"
-        >
-          <span className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.14] to-transparent opacity-90" />
-          <span className="relative inline-flex items-center gap-2 text-[15px] font-bold tracking-tight">
-            <Zap className="h-4 w-4 shrink-0 opacity-95" aria-hidden />
-            Reserve my seat — limited spots
-            <ArrowRight
-              className="ml-auto h-4 w-4 shrink-0 transition group-hover:translate-x-0.5"
-              aria-hidden
-            />
-          </span>
-          <span className="relative text-[11px] font-medium text-white/85">
-            First-come, first-served · Secure yours before this batch fills
-          </span>
-        </button>
-
-        <p className="text-center text-[11px] leading-relaxed text-muted-foreground">
-          Seats are allotted on a first-come, first-served basis.
-        </p>
-      </div>
-    </div>
-  );
-}
-
 function StickyCTA({ onApply, price, visible }: { onApply: () => void; price: string; visible: boolean }) {
   const [show, setShow] = useState(false);
 
@@ -648,7 +444,7 @@ function CourseInfoStrip({
   ];
   return (
     <section className="bg-background pt-10 pb-4 sm:pt-12">
-      <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-page px-4 sm:px-6 lg:px-8">
         <div className="rounded-2xl bg-brand-purple/10 p-4 sm:p-5">
           <div className="grid gap-3 sm:grid-cols-3">
             {INFO_ITEMS.map((item) => (

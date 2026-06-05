@@ -7,7 +7,7 @@ export function JourneyCta() {
   const [open, setOpen] = useState(false);
   return (
     <section className="py-10 sm:py-16">
-      <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-page px-4 sm:px-6 lg:px-8">
         <div
           className="rounded-2xl px-4 py-12 text-center shadow-lg sm:rounded-3xl sm:px-12 sm:py-16"
           style={{

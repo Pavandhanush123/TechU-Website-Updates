@@ -15,17 +15,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { submitDemoRequest } from "@/lib/api";
+import { GmailLocalPartField } from "@/components/forms/GmailLocalPartInputRow";
 import {
   demoRequestSchema,
   validateField,
-  type DemoRequestInput,
+  type DemoRequestFormValues,
 } from "@/lib/api-schemas";
-
-const COURSES = [
-  "Full Stack Development with Claude AI",
-  "Data Analytics with AI / ML",
-  "UI/UX Designing + Digital Marketing + Graphic Designing with AI",
-];
+import { sanitizeGmailLocalTyping } from "@/lib/gmail-local-part";
+import {
+  useCourseOptions,
+  DEFAULT_COURSE_TITLE,
+} from "@/hooks/useCourseOptions";
 
 type Props = {
   open: boolean;
@@ -33,21 +33,22 @@ type Props = {
   topic?: string;
 };
 
-const empty: DemoRequestInput = {
+const empty: DemoRequestFormValues = {
   fullName: "",
   email: "",
   phone: "",
-  course: COURSES[0],
+  course: DEFAULT_COURSE_TITLE,
 };
 
 export function DemoRequestDialog({ open, onOpenChange, topic }: Props) {
-  const [form, setForm] = useState<DemoRequestInput>(empty);
+  const courseOptions = useCourseOptions();
+  const [form, setForm] = useState<DemoRequestFormValues>(empty);
   const [errors, setErrors] = useState<
-    Partial<Record<keyof DemoRequestInput, string>>
+    Partial<Record<keyof DemoRequestFormValues, string>>
   >({});
   const [submitting, setSubmitting] = useState(false);
   const [touched, setTouched] = useState<
-    Partial<Record<keyof DemoRequestInput, boolean>>
+    Partial<Record<keyof DemoRequestFormValues, boolean>>
   >({});
 
   useEffect(() => {
@@ -61,21 +62,24 @@ export function DemoRequestDialog({ open, onOpenChange, topic }: Props) {
     }
   }, [open, topic]);
 
-  const update = <K extends keyof DemoRequestInput>(
+  const update = <K extends keyof DemoRequestFormValues>(
     key: K,
-    value: DemoRequestInput[K],
+    value: DemoRequestFormValues[K],
   ) => {
     setForm((f) => {
-      const next = { ...f, [key]: value };
+      const next = {
+        ...f,
+        [key]: key === "email" ? sanitizeGmailLocalTyping(String(value)) : value,
+      } as DemoRequestFormValues;
       if (touched[key]) {
-        const msg = validateField(demoRequestSchema, key, value, next);
+        const msg = validateField(demoRequestSchema, key, next[key], next);
         setErrors((e) => ({ ...e, [key]: msg }));
       }
       return next;
     });
   };
 
-  const handleBlur = <K extends keyof DemoRequestInput>(key: K) => {
+  const handleBlur = <K extends keyof DemoRequestFormValues>(key: K) => {
     setTouched((t) => ({ ...t, [key]: true }));
     const msg = validateField(demoRequestSchema, key, form[key], form);
     setErrors((e) => ({ ...e, [key]: msg }));
@@ -85,9 +89,10 @@ export function DemoRequestDialog({ open, onOpenChange, topic }: Props) {
     e.preventDefault();
     const parsed = demoRequestSchema.safeParse(form);
     if (!parsed.success) {
-      const fieldErrors: Partial<Record<keyof DemoRequestInput, string>> = {};
+      const fieldErrors: Partial<Record<keyof DemoRequestFormValues, string>> =
+        {};
       for (const issue of parsed.error.issues) {
-        const key = issue.path[0] as keyof DemoRequestInput;
+        const key = issue.path[0] as keyof DemoRequestFormValues;
         if (!fieldErrors[key]) fieldErrors[key] = issue.message;
       }
       setErrors(fieldErrors);
@@ -126,14 +131,14 @@ export function DemoRequestDialog({ open, onOpenChange, topic }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-md min-w-0 overflow-x-hidden">
+      <DialogContent className="max-w-md min-w-0 overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>
             {topic ? `Register for ${topic}` : "Register for a Free Demo"}
           </DialogTitle>
           <DialogDescription>
             {topic
-              ? "Reserve your seat — we'll email you the joining details."
+              ? "We'll email you the joining details."
               : "See what learning at TechU is like — book a live demo session."}
           </DialogDescription>
         </DialogHeader>
@@ -153,22 +158,14 @@ export function DemoRequestDialog({ open, onOpenChange, topic }: Props) {
               <p className="mt-1 text-xs text-destructive">{errors.fullName}</p>
             )}
           </div>
-          <div className="min-w-0 overflow-hidden">
-            <label className="text-sm font-medium">Email</label>
-            <input
-              className={inputCls(!!errors.email)}
-              type="email"
-              value={form.email}
-              onChange={(e) => update("email", e.target.value)}
-              onBlur={() => handleBlur("email")}
-              maxLength={255}
-              autoComplete="email"
-              required
-            />
-            {errors.email && (
-              <p className="mt-1 text-xs text-destructive">{errors.email}</p>
-            )}
-          </div>
+          <GmailLocalPartField
+            id="demo-email"
+            className="min-w-0 overflow-hidden"
+            value={form.email}
+            onValueChange={(v) => update("email", v)}
+            onBlur={() => handleBlur("email")}
+            error={errors.email}
+          />
           <div className="min-w-0 overflow-hidden">
             <label className="text-sm font-medium">Phone</label>
             <div
@@ -237,7 +234,7 @@ export function DemoRequestDialog({ open, onOpenChange, topic }: Props) {
                   position="popper"
                   className="rounded-xl border border-border/70 bg-white/95 p-1.5 shadow-[0_18px_45px_-20px_rgba(0,0,0,0.45)] backdrop-blur-md"
                 >
-                  {COURSES.map((course) => (
+                  {courseOptions.map((course) => (
                     <SelectItem
                       key={course}
                       value={course}

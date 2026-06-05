@@ -27,7 +27,7 @@ import { adminLogout } from "@/lib/api";
 
 const SECTION_QUICK_JUMPS = [
   { key: "hero", label: "Edit Hero" },
-  { key: "mentors", label: "Edit Mentors" },
+  { key: "mentors", label: "Mentors homepage (optional)" },
   { key: "testimonials", label: "Edit Testimonials" },
   { key: "upcoming_courses", label: "Edit Upcoming Courses" },
   { key: "webinars", label: "Edit Webinars" },

@@ -6,7 +6,6 @@ import type { SeoSectionData } from "@/lib/api";
 import { AnnouncementBar } from "@/components/landing/AnnouncementBar";
 import { SiteHeader } from "@/components/landing/SiteHeader";
 import { Hero } from "@/components/landing/Hero";
-import { CourseSearchBar } from "@/components/landing/CourseSearchBar";
 import { DemoRequestDialog } from "@/components/landing/DemoRequestDialog";
 import { UpcomingCourses } from "@/components/landing/UpcomingCourses";
 import { MentorsSection } from "@/components/landing/MentorsSection";
@@ -17,7 +16,7 @@ import { SuccessStories } from "@/components/landing/SuccessStories";
 import { ContactSection } from "@/components/landing/ContactSection";
 import { FinalCta } from "@/components/landing/FinalCta";
 import { SiteFooter } from "@/components/landing/SiteFooter";
-import { WelcomePopup } from "@/components/landing/WelcomePopup";
+import { IsaProgramPopup } from "@/components/landing/IsaProgramPopup";
 import { ApplyDialog } from "@/components/course-detail/ApplyDialog";
 
 /** Default course when opening ApplyDialog from homepage CTAs without a specific selection. */
@@ -50,12 +49,11 @@ function Index() {
       <AnnouncementBar />
       <SiteHeader />
       <Hero onOpenDemo={() => setDemoOpen(true)} />
-      <CourseSearchBar />
       <UpcomingCourses />
       <MentorsSection />
       <WebinarsSection />
       <InfrastructureSection />
-      <CtaBanner />
+      <CtaBanner onPrimaryClick={() => setDemoOpen(true)} />
       <SuccessStories />
       <ContactSection />
       <FinalCta onPrimaryEnroll={() => setFinalEnrollOpen(true)} />
@@ -67,7 +65,7 @@ function Index() {
         courseTitle={HOMEPAGE_ENROLL_DEFAULT_COURSE}
         ctaLabel="Enroll Now"
       />
-      <WelcomePopup />
+      <IsaProgramPopup />
     </main>
   );
 }

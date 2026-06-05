@@ -45,11 +45,6 @@ const QUICK_LINKS: { label: string; sublabel: string; to: string }[] = [
     to: "/admin/content",
   },
   {
-    label: "Edit Mentors",
-    sublabel: "Mentor cards",
-    to: "/admin/content",
-  },
-  {
     label: "Edit Testimonials",
     sublabel: "Student stories",
     to: "/admin/content",

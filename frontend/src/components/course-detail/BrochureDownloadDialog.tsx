@@ -11,11 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { submitBrochureRequest } from "@/lib/api";
+import { GmailLocalPartField } from "@/components/forms/GmailLocalPartInputRow";
 import {
   brochureRequestSchema,
   sanitizePhone,
   validateField,
 } from "@/lib/api-schemas";
+import { sanitizeGmailLocalTyping } from "@/lib/gmail-local-part";
 
 type BrochureField = "fullName" | "email" | "phone";
 
@@ -43,9 +45,13 @@ export function BrochureDownloadDialog({
 
   const setField = (key: BrochureField, value: string) => {
     setForm((f) => {
-      const next = { ...f, [key]: value };
+      const next = {
+        ...f,
+        [key]: key === "email" ? sanitizeGmailLocalTyping(value) : value,
+      };
       if (touched[key]) {
-        const msg = validateField(brochureRequestSchema, key, value, {
+        const fieldVal = next[key];
+        const msg = validateField(brochureRequestSchema, key, fieldVal, {
           ...next,
           course: courseTitle,
         });
@@ -56,11 +62,17 @@ export function BrochureDownloadDialog({
   };
   const blurField = (key: BrochureField) => {
     setTouched((t) => ({ ...t, [key]: true }));
-    const value = key === "phone" ? sanitizePhone(form.phone) : form[key];
-    if (key === "phone") setForm((f) => ({ ...f, phone: value }));
-    const msg = validateField(brochureRequestSchema, key, value, {
-      ...form,
-      [key]: value,
+    let merged = { ...form };
+    if (key === "phone") {
+      merged = { ...merged, phone: sanitizePhone(form.phone) };
+    } else if (key === "email") {
+      merged = { ...merged, email: sanitizeGmailLocalTyping(form.email) };
+    }
+    setForm(merged);
+    const fieldVal =
+      key === "phone" ? merged.phone : key === "email" ? merged.email : merged[key];
+    const msg = validateField(brochureRequestSchema, key, fieldVal, {
+      ...merged,
       course: courseTitle,
     });
     setErrors((e) => ({ ...e, [key]: msg }));
@@ -68,7 +80,11 @@ export function BrochureDownloadDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const sanitized = { ...form, phone: sanitizePhone(form.phone) };
+    const sanitized = {
+      ...form,
+      phone: sanitizePhone(form.phone),
+      email: sanitizeGmailLocalTyping(form.email),
+    };
     setForm(sanitized);
     const parsed = brochureRequestSchema.safeParse({
       ...sanitized,
@@ -87,7 +103,12 @@ export function BrochureDownloadDialog({
     setErrors({});
     setLoading(true);
     try {
-      const res = await submitBrochureRequest(parsed.data);
+      const res = await submitBrochureRequest({
+        ...parsed.data,
+        phone: parsed.data.phone.startsWith("+")
+          ? parsed.data.phone
+          : `+91${parsed.data.phone}`,
+      });
       if (!res.ok) {
         toast.error(res.error);
         return;
@@ -140,41 +161,41 @@ export function BrochureDownloadDialog({
               <p className="mt-1 text-xs text-destructive">{errors.fullName}</p>
             )}
           </div>
-          <div>
-            <Label htmlFor="b-email">Email</Label>
-            <Input
-              id="b-email"
-              type="email"
-              value={form.email}
-              onChange={(e) => setField("email", e.target.value)}
-              onBlur={() => blurField("email")}
-              placeholder="you@example.com"
-              maxLength={255}
-              autoComplete="email"
-              aria-invalid={!!errors.email}
-              className={errors.email ? "border-destructive" : ""}
-            />
-            {errors.email && (
-              <p className="mt-1 text-xs text-destructive">{errors.email}</p>
-            )}
-          </div>
+          <GmailLocalPartField
+            id="b-email"
+            value={form.email}
+            onValueChange={(v) => setField("email", v)}
+            onBlur={() => blurField("email")}
+            error={errors.email}
+          />
           <div>
             <Label htmlFor="b-phone">Phone</Label>
-            <Input
-              id="b-phone"
-              type="tel"
-              inputMode="tel"
-              value={form.phone}
-              onChange={(e) =>
-                setField("phone", e.target.value.replace(/[^\d+\s\-()]/g, ""))
-              }
-              onBlur={() => blurField("phone")}
-              placeholder="9876543210"
-              maxLength={20}
-              autoComplete="tel"
-              aria-invalid={!!errors.phone}
-              className={errors.phone ? "border-destructive" : ""}
-            />
+            <div
+              className={`mt-1 flex h-9 items-center gap-2 rounded-md border bg-transparent px-3 shadow-sm transition-colors focus-within:ring-2 focus-within:ring-brand-purple/20 ${
+                errors.phone
+                  ? "border-destructive focus-within:border-destructive"
+                  : "border-input focus-within:border-brand-purple"
+              }`}
+            >
+              <span className="shrink-0 text-sm font-medium text-muted-foreground">
+                +91
+              </span>
+              <input
+                id="b-phone"
+                type="tel"
+                inputMode="numeric"
+                value={form.phone}
+                onChange={(e) =>
+                  setField("phone", e.target.value.replace(/\D/g, "").slice(0, 10))
+                }
+                onBlur={() => blurField("phone")}
+                placeholder="10-digit mobile number"
+                maxLength={10}
+                autoComplete="tel-national"
+                aria-invalid={!!errors.phone}
+                className="h-full flex-1 bg-transparent text-sm focus:outline-none"
+              />
+            </div>
             {errors.phone && (
               <p className="mt-1 text-xs text-destructive">{errors.phone}</p>
             )}

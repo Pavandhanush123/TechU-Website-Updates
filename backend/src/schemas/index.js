@@ -1,10 +1,5 @@
 import { z } from "zod";
 
-const PASSOUT_BASE_START_YEAR = 2021;
-const PASSOUT_BASE_END_YEAR = 2026;
-const PASSOUT_BASE_REFERENCE_YEAR = 2026;
-const APRIL_MONTH_INDEX = 3;
-
 const sanitizePhone = (raw) => {
   const trimmed = raw.trim();
   const hasPlus = trimmed.startsWith("+");
@@ -16,18 +11,37 @@ const fullNameField = z
   .string()
   .trim()
   .min(2, "Please enter your full name")
-  .max(100, "Name is too long")
-  .regex(
-    /^[A-Za-z][A-Za-z\s.'-]+$/,
-    "Use letters only (spaces, hyphens and apostrophes are fine)",
-  );
+  .max(100, "Name is too long");
 
-const emailField = z
+const normalizeGmailLocal = (raw) => {
+  let s = String(raw ?? "").trim();
+  if (!s) return "";
+  const lower = s.toLowerCase();
+  if (lower.endsWith("@gmail.com")) {
+    s = s.slice(0, s.length - 10);
+  } else {
+    const at = s.indexOf("@");
+    if (at >= 0) s = s.slice(0, at);
+  }
+  return s.trim().toLowerCase();
+};
+
+/** Public lead endpoints: accept Gmail local part or full `x@gmail.com`; stored as full address. */
+const gmailLeadEmailField = z
   .string()
   .trim()
-  .min(1, "Email is required")
-  .max(255, "Email is too long")
-  .email("Enter a valid email address");
+  .transform((raw) => normalizeGmailLocal(raw))
+  .pipe(
+    z
+      .string()
+      .min(1, "Enter your Gmail username (part before @)")
+      .max(64, "Gmail username is too long")
+      .regex(
+        /^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$/,
+        "Use letters, numbers, dots, hyphens, or underscores only",
+      ),
+  )
+  .transform((local) => `${local}@gmail.com`);
 
 const phoneField = z
   .string()
@@ -59,60 +73,45 @@ const isExperienceYearsMonths = (value) => {
     && months <= 11;
 };
 
-const getPassoutYearRange = (today = new Date()) => {
-  const year = today.getFullYear();
-  const month = today.getMonth();
-  const effectiveYear = month >= APRIL_MONTH_INDEX ? year : year - 1;
-  const shift = Math.max(0, effectiveYear - PASSOUT_BASE_REFERENCE_YEAR);
-  return {
-    startYear: PASSOUT_BASE_START_YEAR + shift,
-    endYear: PASSOUT_BASE_END_YEAR + shift,
-  };
-};
-
-const isPassoutYearInRange = (value) => {
-  if (!/^\d{4}$/.test(value.trim())) return false;
-  const year = Number(value);
-  const { startYear, endYear } = getPassoutYearRange();
-  return year >= startYear && year <= endYear;
-};
-
 export const demoRequestSchema = z.object({
   fullName: fullNameField,
-  email: emailField,
+  email: gmailLeadEmailField,
   phone: phoneField,
   course: courseField,
 });
 
 export const applicationSchema = z.object({
   fullName: fullNameField,
-  email: emailField,
+  email: gmailLeadEmailField,
   phone: phoneField,
+  // Optional total work experience ("X years Y months"). Only the homepage
+  // Hire-Talent form sends this; the course "Apply" form no longer collects it.
   experience: z
     .string()
     .trim()
-    .min(1, "Please select your year of passing")
     .max(80)
     .refine(
-      (v) => {
-        const trimmed = v.trim();
-        if (isPassoutYearInRange(trimmed)) return true;
-        if (isExperienceYearsMonths(trimmed)) return true;
-        if (!/^\d{1,2}(\.\d)?$/.test(trimmed)) return false;
-        const n = Number(trimmed);
-        return Number.isFinite(n) && n >= 0 && n <= 50;
-      },
-      "Choose a valid graduation year from the list",
-    ),
+      (v) => v === "" || isExperienceYearsMonths(v.trim()),
+      "Select years (1–20) and months (0–11)",
+    )
+    .optional(),
   course: courseField,
   learningMode: z.string().trim().optional(),
 });
 
 export const brochureRequestSchema = z.object({
   fullName: fullNameField,
-  email: emailField,
+  email: gmailLeadEmailField,
   phone: phoneField,
   course: courseField,
+});
+
+export const isaProgramEnquirySchema = z.object({
+  fullName: fullNameField,
+  email: gmailLeadEmailField,
+  phone: phoneField,
+  course: courseField,
+  preferredMode: z.enum(["Online", "Offline"]),
 });
 
 export const loginSchema = z.object({

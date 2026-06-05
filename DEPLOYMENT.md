@@ -10,7 +10,16 @@ Guide for ops / deployment: what this repo contains, how to produce runnable art
 | **Backend** | Node.js (ES modules) + Express + Prisma + MySQL | Run from `backend/` with `npm start` |
 | **Database** | MySQL | Schema via Prisma migrations in `backend/prisma/migrations/` |
 
-Recommended hosting pattern: reverse proxy (e.g. nginx) serves **`frontend/dist`** for `/` and forwards **`/api`** to the Node process (`PORT`, default **3001**).
+Recommended hosting pattern: reverse proxy (e.g. nginx) serves **`frontend/dist`** for `/` and forwards **`/api`** to the Node process (`PORT`, default **3001**).  
+If all HTTP traffic hits Node first, you will see **"Cannot GET /"** until you either follow that pattern or set **`FRONTEND_DIST`** in the backend `.env` to the Vite `dist/` path (Express will then serve the SPA and API together).
+
+### Why ops asks to replace localhost with the staging URL (`https://devserver.techu.in`)
+
+- **Frontend:** Any **`VITE_API_BASE_URL`** like `http://localhost:3001` is baked into the JS bundle. In production/staging, the browser runs on users’ machines — `localhost` would point at **their** PC, not your server. The repo sets **`https://devserver.techu.in`** (no trailing slash) in **`frontend/.env.production`** and **`frontend/.env.example`** so API calls hit the real host.
+- **Backend:** **`CORS_ORIGINS`** must include **`https://devserver.techu.in`** so the browser is allowed to call the API with cookies from that origin. See **`backend/.env.example`**.
+- **Leave as localhost / 127.0.0.1:** MySQL **`DB_HOST`**, Vite’s **dev-only** proxy target in **`frontend/vite.config.ts`**, and **nginx `proxy_pass http://127.0.0.1:3001`** (Node on the same machine as the proxy) — those are **not** public URLs and should stay on loopback.
+
+**Backend zip without `node_modules`:** run `powershell -ExecutionPolicy Bypass -File scripts/package-backend-for-deploy.ps1` — output: **`deploy-artifacts/TechU-backend-for-deploy.zip`**.
 
 ## Prerequisites
 
@@ -59,6 +68,31 @@ SKIP_INSTALL=1 ./scripts/build-for-deployment.sh
 
 > The zip is primarily the **prebuilt static frontend** plus documentation. Deploy the backend using **one of the options below**.
 
+## Homepage overview videos (Infrastructure section)
+
+`TechuOverviewVideo` plays **two** self-hosted clips in order: the first plays when the user interacts; when it ends, the second loads and plays automatically (user can press play again if autoplay is blocked).
+
+| Deployed URL | Playback order | Notes |
+|---|---|---|
+| `/videos/techu-overview-part2.mp4` | **1st** | Exported from repo `video/Techu .mp4` |
+| `/videos/techu-overview.mp4` | **2nd** | Original overview edit |
+
+Source files live under **`frontend/public/videos/`** (copied to `frontend/dist/` on build).
+
+**Avoid slow page loads:** the component attaches **`preload="none"`** and waits until the player is near the viewport (Intersection Observer) before setting `video.src`. Do not bump to `preload="auto"` without testing.
+
+**Re-encode** for the web (example: 1280×720 cap, 30 fps, H.264 CRF 26, AAC 96 k, `moov` at start):
+
+```powershell
+ffmpeg -y -i "video/Techu .mp4" -c:v libx264 -profile:v main -preset medium -crf 26 -vf "scale='min(1280,iw)':-2,fps=30" -c:a aac -ac 2 -b:a 96k -movflags +faststart "frontend/public/videos/techu-overview-part2.mp4"
+```
+
+**Poster (first clip thumbnail):** `frontend/public/images/techu-overview-first-poster.jpg` — regen after changing the first-played MP4:
+
+```powershell
+ffmpeg -y -ss 00:00:01 -i "frontend/public/videos/techu-overview-part2.mp4" -frames:v 1 -q:v 2 "frontend/public/images/techu-overview-first-poster.jpg"
+```
+
 ## Sending the backend to deployment
 
 The API is Node source + Prisma—it is **not** inside the frontend bundle. Use any of these handoff methods:
@@ -89,10 +123,10 @@ Output: **`deploy-artifacts/techu-backend-source-<timestamp>.zip`** with a **`ba
 **What deployment does after unzip**
 
 1. `cd backend` (inside the unpacked tree)
-2. Create **`.env`** on the server (copy from `.env.example`, set **`DATABASE_URL`**, **`DB_*`**, **`AUTH_SECRET`**, etc.)
+2. Create **`.env`** on the server (copy from `.env.example`). Prefer **`DB_HOST`**, **`DB_PORT`**, **`DB_NAME`**, **`DB_USER`**, **`DB_PASSWORD`** — the app builds **`DATABASE_URL`** automatically for Prisma + MySQL. You can still set **`DATABASE_URL`** directly if the panel gives one string.
 3. `npm ci`
-4. `npx prisma migrate deploy`
-5. `npx prisma generate` (if not already satisfied by CI)
+4. **`npm run migrate:deploy`** (wraps Prisma so credentials work without pasting `DATABASE_URL`; equivalent to migrate after URL resolution)
+5. `npx prisma generate` (if not already satisfied by `npm ci` postinstall — usually not needed separately)
 6. `NODE_ENV=production npm start` (or **`node src/index.js`** with `NODE_ENV` set)
 
 They still need **MySQL** and a process manager / reverse proxy as in the rest of this doc.
@@ -132,7 +166,7 @@ npx prisma generate
 On the server, after configuring **`.env`** (see below):
 
 ```bash
-npx prisma migrate deploy   # applies migrations (no dev DB reset)
+npm run migrate:deploy   # applies migrations (builds DATABASE_URL from DB_* if needed)
 NODE_ENV=production npm start   # Unix
 ```
 
@@ -154,21 +188,25 @@ See `frontend/.env.example`.
 |----------|---------|
 | `NODE_ENV` | Use `production` for live. |
 | `AUTH_SECRET` | **Required in production:** 32+ character secret for sessions. |
-| `DATABASE_URL` | **Required for Prisma** (migrations + `@prisma/client`). MySQL URL format, e.g. `mysql://USER:PASSWORD@HOST:3306/DATABASE`. |
-| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | **Required** by the app’s MySQL pool (`backend/src/db.js`); keep in sync with `DATABASE_URL`. |
+| `DATABASE_URL` | **Optional** if **`DB_*`** are set — the app composes a MySQL URL at startup. Set directly if your host supplies a single connection string only. |
+| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | **Preferred on Plesk / panels:** separate fields. Required **unless** `DATABASE_URL` is set. |
 | `PORT`, `HOST` | HTTP listen (defaults **3001** / **0.0.0.0**). |
 | `CORS_ORIGINS` | Comma-separated browser origins when frontend and API are on different hosts. |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Bootstrap admin (see `backend/.env.example`). |
 
-See **`backend/.env.example`** and add **`DATABASE_URL`** alongside the `DB_*` values (same database).
+See **`backend/.env.example`**. You do **not** need to duplicate the same database twice: either discrete **`DB_*`** **or** **`DATABASE_URL`**.
 
 Production guard: backend **refuses to start** if `NODE_ENV=production` and `AUTH_SECRET` is missing or too short.
 
+### MySQL: credentials vs `DATABASE_URL`
+
+Prisma’s schema still references `env("DATABASE_URL")`, but **`backend/src/ensure-database-url.js`** sets it from **`DB_HOST`**, **`DB_PORT`** (default 3306), **`DB_USER`**, **`DB_PASSWORD`**, and **`DB_NAME`** when it is missing — so ops can use **only** the fields their server UI provides. Use **`npm run migrate:deploy`** from `backend/` so migrations run after the same resolution. Raw `npx prisma migrate deploy` only works if **`DATABASE_URL`** is already in the environment or `.env`.
+
 ### First-time database
 
-1. Configure MySQL credentials in **`backend/.env`**.
-2. Run **`npx prisma migrate deploy`** from `backend/`.
-3. Optional seed / CMS defaults: **`npx prisma db seed`** (see `backend/package.json`; uses `backend/prisma/seed.js`).
+1. Configure MySQL in **`backend/.env`** (`DB_*` or `DATABASE_URL`).
+2. Run **`npm run migrate:deploy`** from `backend/`.
+3. Optional seed / CMS defaults: **`npx prisma db seed`**
 
 ## Health checks
 

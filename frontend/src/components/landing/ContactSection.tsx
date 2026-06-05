@@ -16,7 +16,11 @@ import {
   validateField,
   wireContactNationalPhoneDigits,
 } from "@/lib/api-schemas";
+import { GmailLocalPartField } from "@/components/forms/GmailLocalPartInputRow";
+import { normalizeIndianNationalMobileDigits } from "@/lib/indian-phone";
+import { sanitizeGmailLocalTyping } from "@/lib/gmail-local-part";
 import { useCmsSection } from "@/hooks/useCmsSection";
+import { useCourseOptions } from "@/hooks/useCourseOptions";
 import {
   Select,
   SelectContent,
@@ -113,9 +117,9 @@ const FALLBACK: ContactData = {
 
 export function ContactSection() {
   const cms = useCmsSection<ContactData>("contact", FALLBACK);
-  const COURSE_OPTIONS = cms.courseOptions?.length
-    ? cms.courseOptions
-    : FALLBACK.courseOptions;
+  // Hybrid list: admin-curated contact options + built-in courses + published
+  // admin-created catalog courses, deduped.
+  const COURSE_OPTIONS = useCourseOptions(cms.courseOptions);
   const [form, setForm] = useState({
     fullName: "",
     email: "",
@@ -141,8 +145,10 @@ export function ContactSection() {
       setForm((f) => {
         snapshot =
           key === "phone"
-            ? { ...f, phone: value.replace(/\D/g, "").slice(0, 10) }
-            : { ...f, [key]: value };
+            ? { ...f, phone: normalizeIndianNationalMobileDigits(value) }
+            : key === "email"
+              ? { ...f, email: sanitizeGmailLocalTyping(value) }
+              : { ...f, [key]: value };
         return snapshot;
       });
     });
@@ -174,9 +180,11 @@ export function ContactSection() {
         key === "phone"
           ? {
               ...current,
-              phone: current.phone.replace(/\D/g, "").slice(0, 10),
+              phone: normalizeIndianNationalMobileDigits(current.phone),
             }
-          : current;
+          : key === "email"
+            ? { ...current, email: sanitizeGmailLocalTyping(current.email) }
+            : current;
 
       const wired = wireContactSectionPayload(snapshot);
       const fieldVal =
@@ -253,8 +261,10 @@ export function ContactSection() {
 
   return (
     <section id="contact" className="scroll-mt-24 bg-background py-8 sm:py-10">
-      <div className="mx-auto max-w-[1320px] px-4 sm:px-6 lg:px-8">
-        <div className="overflow-hidden rounded-2xl bg-brand-gradient px-4 py-6 sm:rounded-3xl sm:px-8 sm:py-8 lg:px-12 lg:py-10">
+      {/* Full-bleed gradient band spanning the full screen width (square
+          corners); the contact content stays within the page container. */}
+      <div className="overflow-hidden bg-brand-gradient">
+        <div className="mx-auto max-w-page px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
           <div className="grid gap-6 lg:grid-cols-2 lg:gap-10">
             {/* Left: Contact info */}
             <div className="flex h-full flex-col text-white">
@@ -356,16 +366,13 @@ export function ContactSection() {
                     maxLength={100}
                     autoComplete="name"
                   />
-                  <FloatingField
-                    label="Email"
+                  <GmailLocalPartField
+                    id="contact-email"
                     required
-                    type="email"
                     value={form.email}
-                    onChange={(v) => setField("email", v)}
+                    onValueChange={(v) => setField("email", v)}
                     onBlur={() => blurField("email")}
                     error={errors.email}
-                    maxLength={255}
-                    autoComplete="email"
                   />
                   <FloatingField
                     label="Phone number"
@@ -591,8 +598,11 @@ function FloatingField({
           maxLength={maxLength}
           autoComplete={autoComplete}
           inputMode={inputMode}
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck={false}
           aria-invalid={!!error}
-          className="w-full bg-transparent py-1.5 text-base text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+          className="min-w-0 flex-1 bg-transparent py-1.5 text-base text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
         />
       </div>
       {error && <p className="mt-1 text-xs text-destructive">{error}</p>}

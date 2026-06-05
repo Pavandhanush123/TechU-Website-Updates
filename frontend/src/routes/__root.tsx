@@ -35,7 +35,7 @@ export const Route = createRootRoute({
         Skip to content
       </a>
       <Outlet />
-      <Toaster richColors position="top-right" />
+      <Toaster />
     </>
   ),
   notFoundComponent: NotFoundComponent,

@@ -7,6 +7,8 @@ generator client {
 
 datasource db {
   provider = "mysql"
+  // Set DATABASE_URL in .env, or leave it unset and provide DB_HOST, DB_USER,
+  // DB_PASSWORD, DB_NAME (and optional DB_PORT); see src/ensure-database-url.js
   url      = env("DATABASE_URL")
 }
 
@@ -69,6 +71,30 @@ model DemoRequest {
   @@index([source], name: "idx_demo_requests_source")
   @@index([status], name: "idx_demo_requests_status")
   @@map("demo_requests")
+}
+
+enum IsaLeadStatus {
+  new
+  contacted
+  converted
+  archived
+}
+
+model IsaLead {
+  id            String        @id @default(uuid()) @db.Char(36)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  fullName      String        @map("full_name") @db.VarChar(120)
+  email         String        @db.VarChar(255)
+  phone         String        @db.VarChar(40)
+  course        String        @db.VarChar(200)
+  preferredMode String        @map("preferred_mode") @db.VarChar(50)
+  status        IsaLeadStatus @default(new)
+  notes         String?       @db.Text
+  updatedAt     DateTime      @updatedAt @default(now()) @map("updated_at")
+
+  @@index([createdAt(sort: Desc)], name: "idx_isa_leads_created_at")
+  @@index([status], name: "idx_isa_leads_status")
+  @@map("isa_leads")
 }
 
 model SiteContent {

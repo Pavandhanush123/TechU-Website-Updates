@@ -86,9 +86,10 @@ TechU-Website--main/
 
 ### Local Development
 - Two separate development servers run in parallel:
-  - **Backend** runs on `http://localhost:3001`.
-  - **Frontend** runs on `http://localhost:5173`.
-- The Vite development server is configured to proxy all `/api/*` requests to `http://localhost:3001` to bypass CORS issues during development.
+  - **Backend** runs on `http://localhost:3001` (local dev).
+  - **Frontend** runs on `http://localhost:5173` (local dev).
+- The Vite dev server proxies `/api/*` to `http://127.0.0.1:3001` during development.
+- **Staging builds** use **`https://devserver.techu.in`** as **`VITE_API_BASE_URL`** (`frontend/.env.production`). **`CORS_ORIGINS`** on the server must list that origin (`backend/.env.example`).
 
 ### Production
 - The frontend is compiled into static assets (`frontend/dist/`).

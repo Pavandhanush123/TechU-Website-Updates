@@ -7,10 +7,19 @@ import courseData from "@/assets/course-data.jpg";
 import { DemoRequestDialog } from "@/components/landing/DemoRequestDialog";
 import { Reveal } from "@/components/Reveal";
 import { useCmsSection } from "@/hooks/useCmsSection";
-import { resolveAssetUrl, type UpcomingCoursesData } from "@/lib/api";
+import {
+  COURSES_CATALOG_FALLBACK,
+  resolveAssetUrl,
+  type CatalogCourse,
+  type CoursesCatalogData,
+  type UpcomingCoursesData,
+} from "@/lib/api";
 
 type Mode = UpcomingCoursesData["courses"][number]["mode"];
 type Course = UpcomingCoursesData["courses"][number];
+// Showcase cards carry an explicit slug so admin-created courses deep-link to
+// their own page (built-in cards fall back to slugFor(title)).
+type ShowcaseCourse = Course & { slug?: string };
 
 const FALLBACK: UpcomingCoursesData = {
   title: "Explore Our Upcoming Courses",
@@ -34,7 +43,14 @@ function imageFor(c: Course): string {
   return courseFullstack;
 }
 
-function CourseCard({ c, onRegister }: { c: Course; onRegister: () => void }) {
+function CourseCard({
+  c,
+  onRegister,
+}: {
+  c: ShowcaseCourse;
+  onRegister: () => void;
+}) {
+  const slug = c.slug ?? slugFor(c.title);
   return (
     <article className="flex flex-col overflow-hidden rounded-2xl bg-white shadow-[0_2px_12px_rgba(0,0,0,0.04)] ring-1 ring-border transition hover:-translate-y-1 hover:shadow-xl">
       <div className="relative h-48 overflow-hidden">
@@ -66,7 +82,7 @@ function CourseCard({ c, onRegister }: { c: Course; onRegister: () => void }) {
         <div className="min-h-[4.5rem]">
           <Link
             to="/course-detail"
-            search={{ course: slugFor(c.title) }}
+            search={{ course: slug }}
             className="text-lg font-bold leading-tight text-foreground transition hover:text-brand-purple"
           >
             {c.title}
@@ -102,7 +118,7 @@ function CourseCard({ c, onRegister }: { c: Course; onRegister: () => void }) {
           </button>
           <Link
             to="/course-detail"
-            search={{ course: slugFor(c.title) }}
+            search={{ course: slug }}
             className="flex h-11 items-center justify-center rounded-full border border-brand-purple px-6 text-center text-[15px] font-bold leading-none text-brand-purple transition hover:bg-brand-purple hover:text-white"
           >
             View Details
@@ -113,9 +129,57 @@ function CourseCard({ c, onRegister }: { c: Course; onRegister: () => void }) {
   );
 }
 
+// Expand a published catalog course into one homepage card per delivery mode
+// (Online / Offline). Exotic modes (e.g. Hybrid) are skipped — the homepage
+// showcase only has Online/Offline tabs.
+function catalogToShowcaseCards(entry: CatalogCourse): ShowcaseCourse[] {
+  const modes = (entry.modes ?? [])
+    .map((m): Mode | null => {
+      const l = m.toLowerCase();
+      if (l.includes("online")) return "Online";
+      if (l.includes("offline")) return "Offline";
+      return null;
+    })
+    .filter((m): m is Mode => m !== null);
+  const uniqueModes = Array.from(new Set(modes));
+  return uniqueModes.map((mode) => ({
+    title: entry.title,
+    image: entry.heroImage ?? "",
+    rating: entry.rating ?? 4.8,
+    students: entry.students ?? "",
+    duration: entry.duration ?? "",
+    level: "Beginner",
+    mode,
+    upcoming: true,
+    batchNote: entry.batchNote ?? "",
+    slug: entry.slug,
+  }));
+}
+
 export function UpcomingCourses() {
   const data = useCmsSection<UpcomingCoursesData>("upcoming_courses", FALLBACK);
-  const courses = data.courses ?? [];
+  const catalog = useCmsSection<CoursesCatalogData>(
+    "courses_catalog",
+    COURSES_CATALOG_FALLBACK,
+  );
+
+  // Curated homepage cards + auto-appended published catalog courses, deduped
+  // by title+mode so an admin-curated course isn't listed twice.
+  const courses: ShowcaseCourse[] = useMemo(() => {
+    const base: ShowcaseCourse[] = data.courses ?? [];
+    const seen = new Set(base.map((c) => `${c.title.toLowerCase()}|${c.mode}`));
+    const extra = (catalog.courses ?? [])
+      .filter((c) => c.published !== false && c.slug && c.title)
+      .flatMap(catalogToShowcaseCards)
+      .filter((c) => {
+        const key = `${c.title.toLowerCase()}|${c.mode}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    return [...base, ...extra];
+  }, [data.courses, catalog.courses]);
+
   const MODES: Mode[] = useMemo(() => {
     const s = new Set<Mode>(courses.map((c) => c.mode));
     return Array.from(s);
@@ -130,7 +194,7 @@ export function UpcomingCourses() {
       id="programs"
       className="scroll-mt-24 bg-muted/40 py-12 sm:py-16 lg:py-20"
     >
-      <div className="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-10">
+      <div className="mx-auto max-w-page px-4 sm:px-6 lg:px-10">
         <div className="text-center">
           <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl lg:text-[40px]">
             {data.title}

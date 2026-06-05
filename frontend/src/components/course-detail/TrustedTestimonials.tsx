@@ -153,7 +153,7 @@ export function TrustedTestimonials() {
 
   return (
     <section className="bg-background py-14 sm:py-20">
-      <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-page px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl">
           <h2 className="text-[clamp(1.75rem,5vw,2.5rem)] font-bold leading-tight tracking-tight text-foreground sm:text-5xl">
             Trusted by 100+ Organizations and 52,000+ Professionals Worldwide
